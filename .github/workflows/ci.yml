@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
@@ -37,6 +38,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,10 +55,12 @@ jobs:
       - name: Run unit tests with coverage
         run: npm run test:coverage -- tests/unit
 
-      - name: Upload coverage reports
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: always()
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+          files: ./coverage/lcov.info
+          flags: unittests
 
