@@ -35,7 +35,10 @@ jobs:
         id: get_version
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
+            # Remove refs/tags/ prefix
+            VERSION=${GITHUB_REF#refs/tags/}
+            # Remove v prefix if it exists
+            VERSION=${VERSION#v}
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
             VERSION=$(jq -r '.version' package.json)
