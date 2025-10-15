@@ -66,7 +66,7 @@ jobs:
       - name: Compare bundle sizes
         id: compare
         run: |
-          cat > compare.js << 'EOF'
+          cat > compare.cjs << 'EOF'
           const fs = require('fs');
           
           function readStats(file) {
@@ -138,7 +138,7 @@ jobs:
           fs.writeFileSync('comment.md', comment);
           EOF
           
-          node compare.js
+          node compare.cjs
 
       - name: Comment on PR
         uses: actions/github-script@v7

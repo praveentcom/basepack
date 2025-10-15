@@ -4,7 +4,7 @@
 
 [![npm version](https://badge.fury.io/js/basepack.svg)](https://www.npmjs.com/package/basepack)
 [![CI](https://github.com/praveentcom/basepack/actions/workflows/ci.yml/badge.svg)](https://github.com/praveentcom/basepack/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/praveentcom/basepack/branch/main/graph/badge.svg)](https://codecov.io/gh/praveentcom/basepack)
+[![codecov](https://codecov.io/gh/praveentcom/basepack/branch/main/graph/badge.svg?token=Lh9pAkx9m6)](https://codecov.io/gh/praveentcom/basepack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## About
