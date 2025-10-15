@@ -1,0 +1,180 @@
+name: Bundle Size Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  bundle-size:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build PR bundle
+        run: npm run build
+
+      - name: Save PR bundle stats
+        id: pr-stats
+        run: |
+          mkdir -p bundle-stats
+          for file in dist/*; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+              gzip_size=$(gzip -c "$file" | wc -c)
+              echo "$filename,$size,$gzip_size" >> bundle-stats/pr-stats.csv
+            fi
+          done
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Build base bundle
+        run: |
+          npm ci
+          npm run build
+
+      - name: Save base bundle stats
+        id: base-stats
+        run: |
+          mkdir -p bundle-stats
+          for file in dist/*; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+              gzip_size=$(gzip -c "$file" | wc -c)
+              echo "$filename,$size,$gzip_size" >> bundle-stats/base-stats.csv
+            fi
+          done
+
+      - name: Compare bundle sizes
+        id: compare
+        run: |
+          cat > compare.js << 'EOF'
+          const fs = require('fs');
+          
+          function readStats(file) {
+            const lines = fs.readFileSync(file, 'utf-8').trim().split('\n');
+            const stats = {};
+            lines.forEach(line => {
+              const [name, size, gzipSize] = line.split(',');
+              stats[name] = { size: parseInt(size), gzipSize: parseInt(gzipSize) };
+            });
+            return stats;
+          }
+          
+          function formatSize(bytes) {
+            return (bytes / 1024).toFixed(2) + ' KB';
+          }
+          
+          function formatDiff(diff, isIncrease) {
+            const sign = isIncrease ? '+' : '';
+            return `${sign}${formatSize(diff)}`;
+          }
+          
+          const prStats = readStats('bundle-stats/pr-stats.csv');
+          const baseStats = readStats('bundle-stats/base-stats.csv');
+          
+          let comment = '## 📦 Bundle Size Report\n\n';
+          comment += '| File | Base Size | PR Size | Diff | Gzipped Base | Gzipped PR | Gzipped Diff |\n';
+          comment += '|------|-----------|---------|------|--------------|------------|-------------|\n';
+          
+          let totalBaseSizeGzip = 0;
+          let totalPrSizeGzip = 0;
+          
+          Object.keys(prStats).forEach(file => {
+            const pr = prStats[file];
+            const base = baseStats[file] || { size: 0, gzipSize: 0 };
+            
+            const diff = pr.size - base.size;
+            const gzipDiff = pr.gzipSize - base.gzipSize;
+            const diffPercent = base.size > 0 ? ((diff / base.size) * 100).toFixed(2) : 'N/A';
+            const gzipDiffPercent = base.gzipSize > 0 ? ((gzipDiff / base.gzipSize) * 100).toFixed(2) : 'N/A';
+            
+            const diffEmoji = diff > 0 ? '📈' : diff < 0 ? '📉' : '➡️';
+            const gzipEmoji = gzipDiff > 0 ? '📈' : gzipDiff < 0 ? '📉' : '➡️';
+            
+            const diffStr = diff !== 0 ? `${diffEmoji} ${formatDiff(Math.abs(diff), diff > 0)} (${diffPercent}%)` : '—';
+            const gzipDiffStr = gzipDiff !== 0 ? `${gzipEmoji} ${formatDiff(Math.abs(gzipDiff), gzipDiff > 0)} (${gzipDiffPercent}%)` : '—';
+            
+            comment += `| ${file} | ${formatSize(base.size)} | ${formatSize(pr.size)} | ${diffStr} | ${formatSize(base.gzipSize)} | ${formatSize(pr.gzipSize)} | ${gzipDiffStr} |\n`;
+            
+            totalBaseSizeGzip += base.gzipSize;
+            totalPrSizeGzip += pr.gzipSize;
+          });
+          
+          const totalDiff = totalPrSizeGzip - totalBaseSizeGzip;
+          const totalDiffPercent = totalBaseSizeGzip > 0 ? ((totalDiff / totalBaseSizeGzip) * 100).toFixed(2) : 'N/A';
+          
+          comment += '\n### Total Gzipped Size\n';
+          comment += `- **Base**: ${formatSize(totalBaseSizeGzip)}\n`;
+          comment += `- **PR**: ${formatSize(totalPrSizeGzip)}\n`;
+          comment += `- **Diff**: ${totalDiff > 0 ? '📈' : totalDiff < 0 ? '📉' : '➡️'} ${formatDiff(Math.abs(totalDiff), totalDiff > 0)} (${totalDiffPercent}%)\n`;
+          
+          if (totalDiff > 10240) { // 10KB increase
+            comment += '\n⚠️ **Warning**: Bundle size increased by more than 10KB\n';
+          } else if (totalDiff < 0) {
+            comment += '\n✅ **Great job!** Bundle size decreased\n';
+          } else {
+            comment += '\n✅ Bundle size change is minimal\n';
+          }
+          
+          fs.writeFileSync('comment.md', comment);
+          EOF
+          
+          node compare.js
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('comment.md', 'utf-8');
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('📦 Bundle Size Report')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+

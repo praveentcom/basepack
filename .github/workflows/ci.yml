@@ -61,6 +61,45 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-          files: ./coverage/lcov.info
+          files: ./coverage/lcov.info,./coverage/junit.xml
           flags: unittests
+
+  bundle-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build bundle
+        run: npm run build
+
+      - name: Analyze bundle size
+        run: |
+          echo "### Bundle Size Analysis 📦" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size | Gzipped |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|---------|" >> $GITHUB_STEP_SUMMARY
+          for file in dist/*; do
+            if [ -f "$file" ]; then
+              size=$(ls -lh "$file" | awk '{print $5}')
+              gzip_size=$(gzip -c "$file" | wc -c | awk '{printf "%.1f KB", $1/1024}')
+              echo "| $(basename $file) | $size | $gzip_size |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Upload bundle stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-stats
+          path: dist/
+          retention-days: 30
 

@@ -14,5 +14,16 @@ module.exports = {
   },
   testTimeout: 30000,
   maxWorkers: 6,
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: './coverage',
+      outputName: 'junit.xml',
+      classNameTemplate: '{filepath}',
+      titleTemplate: '{title}',
+      ancestorSeparator: ' › ',
+      usePathForSuiteName: true,
+    }],
+  ],
 };
 
