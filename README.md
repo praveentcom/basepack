@@ -1,6 +1,6 @@
 # Basepack
 
-> Ready-to-use service utilities for backend applications with multi-provider support and automatic failover.
+An opinionated library of ready-to-use service utilities for backend applications. Comprises of commonly used services like email, cache, logging, etc.
 
 [![npm version](https://badge.fury.io/js/basepack.svg)](https://www.npmjs.com/package/basepack)
 [![CI](https://github.com/praveentcom/basepack/actions/workflows/ci.yml/badge.svg)](https://github.com/praveentcom/basepack/actions/workflows/ci.yml)
@@ -9,7 +9,7 @@
 
 ## About
 
-Basepack provides production-ready service utilities for Node.js backend applications. Built with TypeScript, it offers multi-provider support with automatic failover, making your backend services more resilient and flexible.
+Basepack provides production-ready service utilities for Node.js backend applications. Built with TypeScript, it offers multi-provider support with automatic failover, making your backend services more resilient and flexible. It also provides a set of commonly used services like email, cache, logging, etc.
 
 **Key Features:**
 - Built-in validation
