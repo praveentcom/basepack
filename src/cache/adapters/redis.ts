@@ -33,6 +33,13 @@ import {
  * Provides caching operations using Redis.
  * Requires the `ioredis` package to be installed.
  * 
+ * Also compatible with:
+ * - Valkey (open-source Redis fork) - fully Redis-compatible
+ * - Amazon ElastiCache for Redis - AWS managed Redis service
+ * - Any Redis-compatible cache server
+ * 
+ * Supports cluster mode, TLS encryption, and Redis AUTH tokens.
+ * 
  * @example Basic usage
  * ```typescript
  * const provider = new RedisProvider({
@@ -78,6 +85,25 @@ import {
  *   port: 6380,
  *   tls: true,
  *   password: 'secret'
+ * });
+ * ```
+ * 
+ * @example Valkey (Redis-compatible)
+ * ```typescript
+ * const provider = new RedisProvider({
+ *   host: 'valkey.example.com',
+ *   port: 6379,
+ *   password: 'secret'
+ * });
+ * ```
+ * 
+ * @example Amazon ElastiCache for Redis
+ * ```typescript
+ * const provider = new RedisProvider({
+ *   host: 'my-cluster.abc123.0001.use1.cache.amazonaws.com',
+ *   port: 6379,
+ *   password: 'your-auth-token', // If Redis AUTH enabled
+ *   tls: true // If encryption in-transit enabled
  * });
  * ```
  */

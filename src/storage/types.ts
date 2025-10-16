@@ -20,7 +20,8 @@ import type { Logger } from '../logger/types';
  */
 export enum StorageProvider {
   S3 = 's3',
-  GCS = 'gcs'
+  GCS = 'gcs',
+  AZURE = 'azure'
 }
 
 /**
@@ -100,11 +101,56 @@ export interface GCSConfig {
 }
 
 /**
+ * Azure Blob Storage configuration
+ * 
+ * @example Using connection string
+ * ```typescript
+ * const config: AzureConfig = {
+ *   container: 'my-container',
+ *   connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING!
+ * };
+ * ```
+ * 
+ * @example Using account name and key
+ * ```typescript
+ * const config: AzureConfig = {
+ *   container: 'my-container',
+ *   accountName: 'mystorageaccount',
+ *   accountKey: process.env.AZURE_STORAGE_ACCOUNT_KEY!
+ * };
+ * ```
+ * 
+ * @example Using SAS token
+ * ```typescript
+ * const config: AzureConfig = {
+ *   container: 'my-container',
+ *   accountName: 'mystorageaccount',
+ *   sasToken: process.env.AZURE_STORAGE_SAS_TOKEN!
+ * };
+ * ```
+ */
+export interface AzureConfig {
+  /** Azure container name */
+  container: string;
+  /** Azure Storage connection string */
+  connectionString?: string;
+  /** Storage account name */
+  accountName?: string;
+  /** Storage account key */
+  accountKey?: string;
+  /** SAS token for authentication */
+  sasToken?: string;
+  /** Custom endpoint URL (for Azure Stack or emulator) */
+  endpoint?: string;
+}
+
+/**
  * Base storage provider configuration
  */
 export type StorageProviderConfig = 
   | { provider: StorageProvider.S3; config?: S3Config }
   | { provider: StorageProvider.GCS; config?: GCSConfig }
+  | { provider: StorageProvider.AZURE; config?: AzureConfig }
   | { provider: StorageProvider; config?: Record<string, unknown> };
 
 /**
@@ -146,7 +192,7 @@ export type StorageProviderConfig =
  */
 export type StorageServiceConfig = {
   provider: StorageProvider;
-  config?: S3Config | GCSConfig | Record<string, unknown>;
+  config?: S3Config | GCSConfig | AzureConfig | Record<string, unknown>;
   logger?: Logger;
 }
 

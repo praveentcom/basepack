@@ -2,7 +2,9 @@
 
 The Cache service provides a unified interface for caching operations across different cache providers. It currently supports:
 - **Redis** - High-performance in-memory cache
+- **Valkey** - Open-source Redis fork (fully Redis-compatible)
 - **Memcached** - Distributed memory caching system
+- **Amazon ElastiCache** - AWS managed caching (Redis or Memcached compatible)
 
 ## Features
 
@@ -287,6 +289,222 @@ const cache = new CacheService({
   // Uses environment variables
 });
 ```
+
+### Valkey
+
+Valkey is an open-source, Redis-compatible key-value store that was forked from Redis after the license change. It's fully compatible with the Redis adapter - simply use the Redis provider with your Valkey endpoint.
+
+#### Basic Valkey Configuration
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'localhost',
+    port: 6379 // Default Valkey port
+  }
+});
+```
+
+#### Valkey with Authentication
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'valkey.example.com',
+    port: 6379,
+    password: 'your-password'
+  }
+});
+```
+
+#### Valkey with TLS
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'valkey.example.com',
+    port: 6380,
+    tls: true,
+    password: 'your-password'
+  }
+});
+```
+
+#### Valkey Environment Variables
+
+```bash
+export REDIS_HOST=valkey.example.com
+export REDIS_PORT=6379
+export REDIS_PASSWORD=your-password
+export REDIS_TLS=false
+```
+
+Then initialize without explicit config:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS
+  // Uses environment variables
+});
+```
+
+#### Why Valkey?
+
+- **100% Redis-compatible** - Drop-in replacement for Redis
+- **Open-source license** - BSD 3-Clause license (vs Redis's proprietary license)
+- **Community-driven** - Backed by Linux Foundation
+- **Active development** - Regular updates and improvements
+- **No vendor lock-in** - True open-source alternative
+
+### Amazon ElastiCache
+
+Amazon ElastiCache is AWS's managed caching service that provides fully managed Redis or Memcached. The existing Redis and Memcached adapters work seamlessly with ElastiCache endpoints.
+
+#### ElastiCache for Redis
+
+ElastiCache for Redis provides Redis-compatible endpoints. Simply use the Redis adapter with your ElastiCache endpoint:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'my-cluster.abc123.0001.use1.cache.amazonaws.com',
+    port: 6379
+  }
+});
+```
+
+#### ElastiCache for Redis with Cluster Mode
+
+For cluster mode enabled:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'my-cluster.abc123.clustercfg.use1.cache.amazonaws.com',
+    port: 6379
+  }
+});
+```
+
+#### ElastiCache for Redis with TLS (In-Transit Encryption)
+
+If your ElastiCache cluster has encryption in-transit enabled:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'my-secure-cluster.abc123.0001.use1.cache.amazonaws.com',
+    port: 6380, // TLS port
+    tls: true
+  }
+});
+```
+
+#### ElastiCache for Redis with Auth Token
+
+If your ElastiCache cluster has Redis AUTH enabled:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'my-cluster.abc123.0001.use1.cache.amazonaws.com',
+    port: 6379,
+    password: 'your-auth-token', // From ElastiCache AUTH token
+    tls: true // If encryption in-transit is enabled
+  }
+});
+```
+
+#### ElastiCache for Memcached
+
+ElastiCache for Memcached provides Memcached-compatible endpoints:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.MEMCACHED,
+  config: {
+    servers: ['my-cluster.abc123.cfg.use1.cache.amazonaws.com:11211']
+  }
+});
+```
+
+#### ElastiCache for Memcached with Multiple Nodes
+
+For multi-node Memcached clusters, specify each node endpoint:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.MEMCACHED,
+  config: {
+    servers: [
+      'my-cluster.abc123.0001.use1.cache.amazonaws.com:11211',
+      'my-cluster.abc123.0002.use1.cache.amazonaws.com:11211',
+      'my-cluster.abc123.0003.use1.cache.amazonaws.com:11211'
+    ]
+  }
+});
+```
+
+#### ElastiCache with Environment Variables
+
+For production deployments, use environment variables:
+
+```bash
+# For ElastiCache Redis
+export REDIS_HOST=my-cluster.abc123.0001.use1.cache.amazonaws.com
+export REDIS_PORT=6379
+export REDIS_PASSWORD=your-auth-token
+export REDIS_TLS=true
+
+# For ElastiCache Memcached
+export MEMCACHED_SERVERS=my-cluster.abc123.0001.use1.cache.amazonaws.com:11211,my-cluster.abc123.0002.use1.cache.amazonaws.com:11211
+```
+
+Then initialize without explicit config:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.REDIS // or CacheProvider.MEMCACHED
+  // Uses environment variables
+});
+```
+
+#### ElastiCache Discovery
+
+For ElastiCache Memcached Auto Discovery:
+
+```typescript
+const cache = new CacheService({
+  provider: CacheProvider.MEMCACHED,
+  config: {
+    // Use the configuration endpoint for auto-discovery
+    servers: ['my-cluster.abc123.cfg.use1.cache.amazonaws.com:11211']
+  }
+});
+```
+
+#### Important Notes for ElastiCache
+
+**Security Groups & VPC:**
+- Ensure your application has network access to ElastiCache endpoints
+- ElastiCache instances are VPC-only and not publicly accessible
+- Configure security groups to allow traffic from your application
+
+**Redis vs Memcached:**
+- Use **ElastiCache for Redis** when you need: persistence, replication, pub/sub, data structures, snapshots
+- Use **ElastiCache for Memcached** when you need: simple key-value caching, horizontal scaling, multi-threading
+
+**Connection String Format:**
+- Redis: `my-cluster.abc123.0001.use1.cache.amazonaws.com:6379`
+- Redis Cluster: `my-cluster.abc123.clustercfg.use1.cache.amazonaws.com:6379`
+- Memcached: `my-cluster.abc123.cfg.use1.cache.amazonaws.com:11211`
 
 ## Usage Examples
 
@@ -839,20 +1057,6 @@ Follow consistent key naming conventions:
 await cache.set({ key: 'user:123', value: user });
 await cache.set({ key: 'posts:123:1', value: posts });
 ```
-
-## Provider Comparison
-
-| Feature | Redis | Memcached |
-|---------|-------|-----------|
-| Data Types | Strings, Lists, Sets, Hashes, etc. | Strings only |
-| Persistence | Optional | No |
-| Replication | Yes | No (client-side sharding) |
-| Max Key Size | 512 MB | 250 bytes |
-| Max Value Size | 512 MB | 1 MB |
-| TTL Precision | Milliseconds | Seconds |
-| Selective Clear | Yes (with keyPrefix) | No (flushes all) |
-| Connection | Persistent | Pooled |
-| Best For | Complex caching, sessions, queues | Simple key-value caching |
 
 ## API Reference
 

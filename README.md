@@ -63,7 +63,7 @@ await service.send({
 
 ### Cache
 
-Multi-provider caching service for high-performance data caching with Redis and Memcached support.
+Multi-provider caching service for high-performance data caching with Redis, Valkey, Memcached, and Amazon ElastiCache support.
 
 **Quick Example:**
 ```typescript
@@ -93,16 +93,18 @@ if (result.found) {
 
 #### Supported Providers
 
-| Provider | Package Required |
-|----------|------------------|
-| Redis | `ioredis` |
-| Memcached | `memcached` |
+| Provider | Package Required | Notes |
+|----------|------------------|-------|
+| Redis | `ioredis` | Self-hosted or managed Redis |
+| Valkey | `ioredis` | Open-source Redis fork (fully Redis-compatible) |
+| Memcached | `memcached` | Self-hosted or managed Memcached |
+| Amazon ElastiCache | `ioredis` or `memcached` | Use Redis or Memcached adapter with ElastiCache endpoints |
 
 **[Complete Cache Documentation](./docs/cache/README.md)** - Setup guides, configuration, examples, and API reference
 
 ### Storage
 
-Multi-provider storage service for file operations with support for AWS S3, Google Cloud Storage, and S3-compatible services.
+Multi-provider storage service for file operations with support for AWS S3, Google Cloud Storage, Azure Blob Storage, and S3-compatible services.
 
 **Quick Example:**
 ```typescript
@@ -136,6 +138,7 @@ const result = await storage.getSignedUrl({
 |----------|------------------|
 | AWS S3 | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` |
 | Google Cloud Storage | `@google-cloud/storage` |
+| Azure Blob Storage | `@azure/storage-blob` |
 
 **[Complete Storage Documentation](./docs/storage/README.md)** - Setup guides, configuration, examples, and API reference
 

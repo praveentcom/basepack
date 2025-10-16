@@ -3,6 +3,7 @@
 The Storage service provides a unified interface for file storage operations across different cloud storage providers. It currently supports:
 - **AWS S3** and S3-compatible services (MinIO, DigitalOcean Spaces, etc.)
 - **Google Cloud Storage (GCS)**
+- **Azure Blob Storage**
 
 ## Features
 
@@ -33,6 +34,12 @@ For Google Cloud Storage support, install the GCS SDK:
 
 ```bash
 npm install @google-cloud/storage
+```
+
+For Azure Blob Storage support, install the Azure SDK:
+
+```bash
+npm install @azure/storage-blob
 ```
 
 ## Quick Start
@@ -175,6 +182,86 @@ const storage = new StorageService({
       client_email: 'service-account@project.iam.gserviceaccount.com',
       private_key: process.env.GCP_PRIVATE_KEY!.replace(/\\n/g, '\n')
     }
+  }
+});
+```
+
+### Azure Blob Storage
+
+#### Using Connection String (Recommended)
+
+The simplest way to authenticate with Azure:
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.AZURE,
+  config: {
+    container: 'my-container',
+    connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING!
+    // Connection string format:
+    // DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=xxx;EndpointSuffix=core.windows.net
+  }
+});
+```
+
+#### Using Standard Azure Environment Variable
+
+Set the standard Azure environment variable:
+```bash
+export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=xxx;EndpointSuffix=core.windows.net"
+```
+
+Then initialize the service:
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.AZURE,
+  config: {
+    container: 'my-container',
+    connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING!
+  }
+});
+```
+
+#### Using Account Name and Key
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.AZURE,
+  config: {
+    container: 'my-container',
+    accountName: 'mystorageaccount',
+    accountKey: process.env.AZURE_STORAGE_ACCOUNT_KEY!
+  }
+});
+```
+
+#### Using SAS Token
+
+For temporary access or limited permissions:
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.AZURE,
+  config: {
+    container: 'my-container',
+    accountName: 'mystorageaccount',
+    sasToken: process.env.AZURE_STORAGE_SAS_TOKEN!
+    // SAS token format: sv=2021-06-08&ss=b&srt=sco&sp=rwdlac&se=2024-12-31T23:59:59Z&st=2024-01-01T00:00:00Z&spr=https&sig=xxx
+  }
+});
+```
+
+#### Using Custom Endpoint (Azure Stack or Emulator)
+
+For local development with Azurite or Azure Stack:
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.AZURE,
+  config: {
+    container: 'my-container',
+    connectionString: 'UseDevelopmentStorage=true', // For Azurite emulator
+    endpoint: 'http://127.0.0.1:10000/devstoreaccount1'
   }
 });
 ```
@@ -663,6 +750,11 @@ npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
 npm install @google-cloud/storage
 ```
 
+**For Azure Blob Storage:**
+```bash
+npm install @azure/storage-blob
+```
+
 ### Credentials Not Found
 
 **For AWS S3**, ensure credentials are provided in one of these ways:
@@ -677,6 +769,12 @@ npm install @google-cloud/storage
 3. Credentials object in config
 4. Application Default Credentials from gcloud CLI
 5. Service account (when running on GCP)
+
+**For Azure Blob Storage**, ensure credentials are provided in one of these ways:
+1. Connection string (recommended): `AZURE_STORAGE_CONNECTION_STRING` environment variable or in config
+2. Account name and key: `accountName` + `accountKey` in config
+3. SAS token: `accountName` + `sasToken` in config
+4. Managed identity (when running on Azure)
 
 ### Bucket Access Denied
 
@@ -714,6 +812,31 @@ Or grant specific permissions:
 - `storage.objects.delete` - Delete files
 - `storage.buckets.get` - Health checks
 
+**For Azure Blob Storage**, ensure your storage account or SAS token has the necessary permissions:
+
+Using Azure RBAC (Role-Based Access Control):
+- `Storage Blob Data Owner` - Full control of blobs
+- `Storage Blob Data Contributor` - Read, write, and delete blobs
+- `Storage Blob Data Reader` - Read blobs only
+
+Using SAS token, ensure it has the appropriate permissions:
+- `r` (Read) - Download files
+- `w` (Write) - Upload files
+- `d` (Delete) - Delete files
+- `l` (List) - List files in container
+
+Generate a SAS token with required permissions:
+```bash
+# Using Azure CLI
+az storage container generate-sas \
+  --account-name mystorageaccount \
+  --name my-container \
+  --permissions rwdl \
+  --expiry 2024-12-31T23:59:59Z \
+  --auth-mode key \
+  --account-key "your-account-key"
+```
+
 ### CORS Issues with Signed URLs
 
 **For AWS S3**, ensure your bucket has CORS configured:
@@ -748,6 +871,30 @@ EOF
 # Apply CORS configuration
 gsutil cors set cors.json gs://your-bucket
 ```
+
+**For Azure Blob Storage**, configure CORS using Azure Portal, Azure CLI, or PowerShell:
+
+Using Azure CLI:
+```bash
+az storage cors add \
+  --account-name mystorageaccount \
+  --services b \
+  --methods GET PUT POST DELETE \
+  --origins https://your-domain.com \
+  --allowed-headers "*" \
+  --exposed-headers "*" \
+  --max-age 3600
+```
+
+Using Azure Portal:
+1. Go to your Storage Account
+2. Navigate to **Settings** > **Resource sharing (CORS)**
+3. Add a CORS rule for Blob service:
+   - **Allowed origins**: `https://your-domain.com`
+   - **Allowed methods**: GET, PUT, POST, DELETE
+   - **Allowed headers**: `*`
+   - **Exposed headers**: `*`
+   - **Max age**: 3600
 
 ## Performance Tips
 

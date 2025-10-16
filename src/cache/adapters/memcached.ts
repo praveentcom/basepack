@@ -33,6 +33,10 @@ import {
  * Provides caching operations using Memcached.
  * Requires the `memcached` package to be installed.
  * 
+ * Also compatible with Amazon ElastiCache for Memcached - simply use your
+ * ElastiCache endpoints as the servers. Supports multi-node clusters and
+ * auto-discovery configuration endpoints.
+ * 
  * @example Basic usage
  * ```typescript
  * const provider = new MemcachedProvider({
@@ -69,6 +73,16 @@ import {
  * const provider = new MemcachedProvider({
  *   servers: ['localhost:11211'],
  *   keyPrefix: 'myapp:'
+ * });
+ * ```
+ * 
+ * @example Amazon ElastiCache for Memcached
+ * ```typescript
+ * const provider = new MemcachedProvider({
+ *   servers: [
+ *     'my-cluster.abc123.0001.use1.cache.amazonaws.com:11211',
+ *     'my-cluster.abc123.0002.use1.cache.amazonaws.com:11211'
+ *   ]
  * });
  * ```
  */

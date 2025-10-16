@@ -22,7 +22,9 @@
     "storage",
     "s3",
     "gcs",
-    "google-cloud-storage"
+    "google-cloud-storage",
+    "azure",
+    "azure-blob-storage"
   ],
   "license": "MIT",
   "author": "Praveen Thirumurugan",
@@ -84,6 +86,7 @@
     "@aws-sdk/client-s3": "^3.0.0",
     "@aws-sdk/client-ses": "^3.0.0",
     "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@azure/storage-blob": "^12.28.0",
     "@google-cloud/storage": "^7.17.2",
     "ioredis": "^5.8.1",
     "memcached": "^2.2.0",
@@ -97,6 +100,9 @@
       "optional": true
     },
     "@aws-sdk/s3-request-presigner": {
+      "optional": true
+    },
+    "@azure/storage-blob": {
       "optional": true
     },
     "@google-cloud/storage": {

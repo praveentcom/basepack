@@ -8,6 +8,7 @@ import type {
   StorageServiceConfig,
   S3Config,
   GCSConfig,
+  AzureConfig,
   FileUploadConfig,
   UrlUploadConfig,
   FileDownloadConfig,
@@ -23,7 +24,7 @@ import { StorageProvider } from './types';
 import type { Logger } from '../logger';
 import { consoleLogger } from '../logger';
 import { StorageProviderError } from './errors';
-import { S3Provider, GCSProvider } from './adapters';
+import { S3Provider, GCSProvider, AzureProvider } from './adapters';
 
 /**
  * Storage service for file operations
@@ -418,6 +419,9 @@ export class StorageService {
       
       case StorageProvider.GCS:
         return new GCSProvider((config.config || {}) as GCSConfig, this.logger);
+      
+      case StorageProvider.AZURE:
+        return new AzureProvider((config.config || {}) as AzureConfig, this.logger);
       
       default:
         throw new Error(
