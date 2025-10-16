@@ -1,4 +1,4 @@
-import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SESConfig, EmailSendConfig } from '../types';
+import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SESConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
 import type { Logger } from '../../logger';
 
@@ -35,7 +35,7 @@ import type { Logger } from '../../logger';
  * @see https://aws.amazon.com/ses/
  */
 export class SESProvider implements IEmailProvider {
-  readonly name = 'ses';
+  readonly name = EmailProvider.SES;
   private options: SESConfig;
   private client: any;
   private logger: Logger;
@@ -49,7 +49,7 @@ export class SESProvider implements IEmailProvider {
    */
   constructor(options: SESConfig = {}, logger: Logger = console) {
     this.logger = logger;
-    this.logger.debug('Basepack Email: Initializing provider', { provider: 'ses', region: options.region });
+    this.logger.debug('Basepack Email: Initializing provider', { provider: this.name, region: options.region });
     
     try {
       const { SESClient } = require('@aws-sdk/client-ses');
@@ -85,15 +85,15 @@ export class SESProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
-    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'ses', count: messages.length });
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: this.name, count: messages.length });
 
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
-        this.logger.debug('Basepack Email: Provider message sent', { provider: 'ses', messageId: result.messageId });
+        this.logger.debug('Basepack Email: Provider message sent', { provider: this.name, messageId: result.messageId });
         results.push(result);
       } catch (error) {
-        this.logger.error('Basepack Email: Provider send failed', { provider: 'ses', to: message.to, error });
+        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

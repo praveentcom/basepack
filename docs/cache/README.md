@@ -874,33 +874,6 @@ class CacheService {
 }
 ```
 
-### Types
-
-```typescript
-enum CacheProvider {
-  REDIS = 'redis',
-  MEMCACHED = 'memcached'
-}
-
-interface CacheSetConfig {
-  key: string;
-  value: any;
-  ttl?: number; // seconds
-}
-
-interface CacheGetConfig {
-  key: string;
-}
-
-interface CacheDeleteConfig {
-  key: string;
-}
-
-interface CacheHasConfig {
-  key: string;
-}
-```
-
 ## Troubleshooting
 
 ### Connection Failures

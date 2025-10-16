@@ -8,13 +8,10 @@
  */
 
 import { MemcachedProvider } from '../../../../src/cache/adapters/memcached';
-import { getMemcachedTestConfig, skipIfNotAvailable } from '../test-utils';
+import { CacheProvider } from '../../../../src/cache/types';
+import { getMemcachedTestConfig } from '../test-utils';
 
 describe('MemcachedProvider Integration Tests', () => {
-  if (!skipIfNotAvailable('memcached')) {
-    return;
-  }
-
   let provider: MemcachedProvider;
   const testKeys: string[] = [];
 
@@ -41,7 +38,7 @@ describe('MemcachedProvider Integration Tests', () => {
     it('should connect to Memcached', async () => {
       const health = await provider.health();
       expect(health.status).toBe('healthy');
-      expect(health.provider).toBe('memcached');
+      expect(health.provider).toBe(CacheProvider.MEMCACHED);
       expect(health.responseTime).toBeGreaterThanOrEqual(0);
     });
   });
@@ -245,7 +242,7 @@ describe('MemcachedProvider Integration Tests', () => {
     it('should report healthy status', async () => {
       const health = await provider.health();
 
-      expect(health.provider).toBe('memcached');
+      expect(health.provider).toBe(CacheProvider.MEMCACHED);
       expect(health.status).toBe('healthy');
       expect(health.responseTime).toBeGreaterThanOrEqual(0);
       expect(health.timestamp).toBeInstanceOf(Date);

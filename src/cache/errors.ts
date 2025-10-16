@@ -3,33 +3,27 @@
  * @module cache/errors
  */
 
+import { CacheProvider } from './types';
+
 /**
- * Base error class for cache operations
+ * Error class for cache provider-specific errors.
  * 
- * @example
- * ```typescript
- * try {
- *   await cache.get({ key: 'user:123' });
- * } catch (error) {
- *   if (isCacheError(error)) {
- *     console.error(`Cache error from ${error.provider}: ${error.message}`);
- *   }
- * }
- * ```
+ * Contains structured information about the error including provider name,
+ * HTTP status code, original error, and whether the error is retryable.
  */
 export class CacheError extends Error {
   /**
    * Creates a new CacheError
    * 
    * @param message - Error message
-   * @param provider - Cache provider name
+   * @param provider - Cache provider where the error occurred
    * @param statusCode - Optional HTTP status code or error code
    * @param originalError - Original error that caused this error
    * @param isRetryable - Whether this error is retryable
    */
   constructor(
     message: string,
-    public readonly provider: string,
+    public readonly provider: CacheProvider,
     public readonly statusCode?: number,
     public readonly originalError?: unknown,
     public readonly isRetryable: boolean = false
@@ -44,14 +38,16 @@ export class CacheError extends Error {
   }
 
   /**
-   * Create a CacheError from an unknown error
+   * Create a CacheError from an unknown error.
+   * 
+   * Used by cache provider adapters to convert errors to CacheError instances.
    * 
    * @param error - Unknown error to convert
-   * @param provider - Cache provider name
+   * @param provider - Cache provider where the error occurred
    * @param isRetryable - Whether this error is retryable
    * @returns CacheError instance
    */
-  static from(error: unknown, provider: string, isRetryable: boolean = false): CacheError {
+  static from(error: unknown, provider: CacheProvider, isRetryable: boolean = false): CacheError {
     if (error instanceof CacheError) {
       return error;
     }
@@ -65,17 +61,6 @@ export class CacheError extends Error {
 
 /**
  * Error thrown when cache validation fails
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.set({ key: '', value: 'test' });
- * } catch (error) {
- *   if (isCacheValidationError(error)) {
- *     console.error(`Validation error: ${error.field} - ${error.message}`);
- *   }
- * }
- * ```
  */
 export class CacheValidationError extends Error {
   /**
@@ -99,17 +84,6 @@ export class CacheValidationError extends Error {
 
 /**
  * Error thrown when a cache provider is not supported or fails to initialize
- * 
- * @example
- * ```typescript
- * try {
- *   const cache = new CacheService({ provider: 'invalid' as any });
- * } catch (error) {
- *   if (isCacheProviderError(error)) {
- *     console.error(`Provider error: ${error.provider} - ${error.message}`);
- *   }
- * }
- * ```
  */
 export class CacheProviderError extends Error {
   /**
@@ -119,7 +93,7 @@ export class CacheProviderError extends Error {
    * @param message - Error message
    */
   constructor(
-    public readonly provider: string,
+    public readonly provider: CacheProvider,
     message: string
   ) {
     super(message);
@@ -133,17 +107,6 @@ export class CacheProviderError extends Error {
 
 /**
  * Error thrown when cache connection fails
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.get({ key: 'test' });
- * } catch (error) {
- *   if (isCacheConnectionError(error)) {
- *     console.error(`Connection error: ${error.message}`);
- *   }
- * }
- * ```
  */
 export class CacheConnectionError extends CacheError {
   /**
@@ -155,7 +118,7 @@ export class CacheConnectionError extends CacheError {
    */
   constructor(
     message: string,
-    provider: string,
+    provider: CacheProvider,
     originalError?: unknown
   ) {
     super(message, provider, undefined, originalError, true);
@@ -169,17 +132,6 @@ export class CacheConnectionError extends CacheError {
 
 /**
  * Error thrown when cache operation times out
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.get({ key: 'test' });
- * } catch (error) {
- *   if (isCacheTimeoutError(error)) {
- *     console.error(`Operation timed out after ${error.timeout}ms`);
- *   }
- * }
- * ```
  */
 export class CacheTimeoutError extends CacheError {
   /**
@@ -191,7 +143,7 @@ export class CacheTimeoutError extends CacheError {
    */
   constructor(
     message: string,
-    provider: string,
+    provider: CacheProvider,
     public readonly timeout: number
   ) {
     super(message, provider, undefined, undefined, true);
@@ -208,17 +160,6 @@ export class CacheTimeoutError extends CacheError {
  * 
  * @param error - Error to check
  * @returns True if error is a CacheError
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.get({ key: 'test' });
- * } catch (error) {
- *   if (isCacheError(error)) {
- *     console.error(`Cache error: ${error.provider}`);
- *   }
- * }
- * ```
  */
 export function isCacheError(error: unknown): error is CacheError {
   return error instanceof CacheError;
@@ -229,17 +170,6 @@ export function isCacheError(error: unknown): error is CacheError {
  * 
  * @param error - Error to check
  * @returns True if error is a CacheValidationError
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.set({ key: '', value: 'test' });
- * } catch (error) {
- *   if (isCacheValidationError(error)) {
- *     console.error(`Validation failed for: ${error.field}`);
- *   }
- * }
- * ```
  */
 export function isCacheValidationError(error: unknown): error is CacheValidationError {
   return error instanceof CacheValidationError;
@@ -250,17 +180,6 @@ export function isCacheValidationError(error: unknown): error is CacheValidation
  * 
  * @param error - Error to check
  * @returns True if error is a CacheProviderError
- * 
- * @example
- * ```typescript
- * try {
- *   const cache = new CacheService({ provider: 'invalid' as any });
- * } catch (error) {
- *   if (isCacheProviderError(error)) {
- *     console.error(`Provider not supported: ${error.provider}`);
- *   }
- * }
- * ```
  */
 export function isCacheProviderError(error: unknown): error is CacheProviderError {
   return error instanceof CacheProviderError;
@@ -271,17 +190,6 @@ export function isCacheProviderError(error: unknown): error is CacheProviderErro
  * 
  * @param error - Error to check
  * @returns True if error is a CacheConnectionError
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.get({ key: 'test' });
- * } catch (error) {
- *   if (isCacheConnectionError(error)) {
- *     console.error('Connection failed, retrying...');
- *   }
- * }
- * ```
  */
 export function isCacheConnectionError(error: unknown): error is CacheConnectionError {
   return error instanceof CacheConnectionError;
@@ -292,17 +200,6 @@ export function isCacheConnectionError(error: unknown): error is CacheConnection
  * 
  * @param error - Error to check
  * @returns True if error is a CacheTimeoutError
- * 
- * @example
- * ```typescript
- * try {
- *   await cache.get({ key: 'test' });
- * } catch (error) {
- *   if (isCacheTimeoutError(error)) {
- *     console.error(`Timed out after ${error.timeout}ms`);
- *   }
- * }
- * ```
  */
 export function isCacheTimeoutError(error: unknown): error is CacheTimeoutError {
   return error instanceof CacheTimeoutError;

@@ -17,6 +17,7 @@ import type {
   CacheClearResult,
   CacheHealthInfo,
 } from '../types';
+import { CacheProvider } from '../types';
 import type { Logger } from '../../logger';
 import { CacheError, CacheProviderError, CacheConnectionError, CacheTimeoutError } from '../errors';
 import {
@@ -81,7 +82,7 @@ import {
  * ```
  */
 export class RedisProvider implements ICacheProvider {
-  readonly name = 'redis';
+  readonly name = CacheProvider.REDIS;
   private readonly client: any;
   private readonly keyPrefix: string;
   private readonly logger: Logger;
@@ -108,7 +109,7 @@ export class RedisProvider implements ICacheProvider {
     this.keyPrefix = config.keyPrefix || process.env.REDIS_KEY_PREFIX || '';
     
     this.logger.debug('Basepack Cache: Initializing provider', { 
-      provider: 'redis', 
+      provider: this.name, 
       host: config.host || process.env.REDIS_HOST || 'localhost',
       port: config.port || parseInt(process.env.REDIS_PORT || '6379', 10)
     });
@@ -126,11 +127,11 @@ export class RedisProvider implements ICacheProvider {
         retryStrategy: (times: number) => {
           const maxRetries = config.retries || 3;
           if (times > maxRetries) {
-            this.logger.error('Basepack Cache: Max retries reached', { provider: 'redis', times });
+            this.logger.error('Basepack Cache: Max retries reached', { provider: this.name, times });
             return null; // Stop retrying
           }
           const delay = Math.min(times * 50, 2000);
-          this.logger.debug('Basepack Cache: Retrying connection', { provider: 'redis', attempt: times, delayMs: delay });
+          this.logger.debug('Basepack Cache: Retrying connection', { provider: this.name, attempt: times, delayMs: delay });
           return delay;
         },
         lazyConnect: true,
@@ -161,7 +162,7 @@ export class RedisProvider implements ICacheProvider {
       // Set up event handlers
       this.client.on('connect', () => {
         this.isConnected = true;
-        this.logger.debug('Basepack Cache: Provider connected', { provider: 'redis' });
+        this.logger.debug('Basepack Cache: Provider connected', { provider: this.name });
       });
 
       this.client.on('close', () => {
@@ -169,16 +170,16 @@ export class RedisProvider implements ICacheProvider {
         
         // Only log if not explicitly closing (to avoid test warnings)
         if (this.client.status !== 'end') {
-          this.logger.debug('Basepack Cache: Provider disconnected', { provider: 'redis' });
+          this.logger.debug('Basepack Cache: Provider disconnected', { provider: this.name });
         }
       });
 
       this.client.on('error', (error: Error) => {
-        this.logger.error('Basepack Cache: Provider error', { provider: 'redis', error: error.message });
+        this.logger.error('Basepack Cache: Provider error', { provider: this.name, error: error.message });
       });
 
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider initialization failed', { provider: 'redis', error });
+      this.logger.error('Basepack Cache: Provider initialization failed', { provider: this.name, error });
       throw new CacheProviderError(
         this.name,
         'ioredis is not installed. Install it with: npm install ioredis'
@@ -236,13 +237,13 @@ export class RedisProvider implements ICacheProvider {
     await this.ensureConnected();
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider getting value', { provider: 'redis', key: fullKey });
+    this.logger.debug('Basepack Cache: Provider getting value', { provider: this.name, key: fullKey });
 
     try {
       const value = await this.client.get(fullKey);
 
       if (value === null || value === undefined) {
-        this.logger.debug('Basepack Cache: Provider key not found', { provider: 'redis', key: fullKey });
+        this.logger.debug('Basepack Cache: Provider key not found', { provider: this.name, key: fullKey });
         return {
           success: true,
           key: config.key,
@@ -260,7 +261,7 @@ export class RedisProvider implements ICacheProvider {
         parsedValue = value as T;
       }
 
-      this.logger.debug('Basepack Cache: Provider value retrieved', { provider: 'redis', key: fullKey });
+      this.logger.debug('Basepack Cache: Provider value retrieved', { provider: this.name, key: fullKey });
 
       return {
         success: true,
@@ -270,7 +271,7 @@ export class RedisProvider implements ICacheProvider {
         provider: this.name,
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider get failed', { provider: 'redis', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider get failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -304,7 +305,7 @@ export class RedisProvider implements ICacheProvider {
     await this.ensureConnected();
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider setting value', { provider: 'redis', key: fullKey, ttl: config.ttl });
+    this.logger.debug('Basepack Cache: Provider setting value', { provider: this.name, key: fullKey, ttl: config.ttl });
 
     try {
       // Serialize value to JSON if it's an object
@@ -318,7 +319,7 @@ export class RedisProvider implements ICacheProvider {
         await this.client.set(fullKey, serialized);
       }
 
-      this.logger.debug('Basepack Cache: Provider value set', { provider: 'redis', key: fullKey });
+      this.logger.debug('Basepack Cache: Provider value set', { provider: this.name, key: fullKey });
 
       return {
         success: true,
@@ -327,7 +328,7 @@ export class RedisProvider implements ICacheProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider set failed', { provider: 'redis', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider set failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -357,12 +358,12 @@ export class RedisProvider implements ICacheProvider {
     await this.ensureConnected();
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider deleting value', { provider: 'redis', key: fullKey });
+    this.logger.debug('Basepack Cache: Provider deleting value', { provider: this.name, key: fullKey });
 
     try {
       await this.client.del(fullKey);
 
-      this.logger.debug('Basepack Cache: Provider value deleted', { provider: 'redis', key: fullKey });
+      this.logger.debug('Basepack Cache: Provider value deleted', { provider: this.name, key: fullKey });
 
       return {
         success: true,
@@ -371,7 +372,7 @@ export class RedisProvider implements ICacheProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider delete failed', { provider: 'redis', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider delete failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -404,12 +405,12 @@ export class RedisProvider implements ICacheProvider {
     await this.ensureConnected();
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider checking existence', { provider: 'redis', key: fullKey });
+    this.logger.debug('Basepack Cache: Provider checking existence', { provider: this.name, key: fullKey });
 
     try {
       const exists = await this.client.exists(fullKey);
 
-      this.logger.debug('Basepack Cache: Provider existence checked', { provider: 'redis', key: fullKey, exists: exists > 0 });
+      this.logger.debug('Basepack Cache: Provider existence checked', { provider: this.name, key: fullKey, exists: exists > 0 });
 
       return {
         success: true,
@@ -418,7 +419,7 @@ export class RedisProvider implements ICacheProvider {
         provider: this.name,
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider has failed', { provider: 'redis', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider has failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -448,7 +449,7 @@ export class RedisProvider implements ICacheProvider {
   async clear(): Promise<CacheClearResult> {
     await this.ensureConnected();
     
-    this.logger.info('Basepack Cache: Provider clearing cache', { provider: 'redis', keyPrefix: this.keyPrefix || 'all' });
+    this.logger.info('Basepack Cache: Provider clearing cache', { provider: this.name, keyPrefix: this.keyPrefix || 'all' });
 
     try {
       if (this.keyPrefix) {
@@ -470,11 +471,11 @@ export class RedisProvider implements ICacheProvider {
           await pipeline.exec();
         }
 
-        this.logger.info('Basepack Cache: Provider cache cleared', { provider: 'redis', keysDeleted: keysFound });
+        this.logger.info('Basepack Cache: Provider cache cleared', { provider: this.name, keysDeleted: keysFound });
       } else {
         // No prefix, flush entire database
         await this.client.flushdb();
-        this.logger.info('Basepack Cache: Provider database flushed', { provider: 'redis' });
+        this.logger.info('Basepack Cache: Provider database flushed', { provider: this.name });
       }
 
       return {
@@ -483,7 +484,7 @@ export class RedisProvider implements ICacheProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider clear failed', { provider: 'redis', error });
+      this.logger.error('Basepack Cache: Provider clear failed', { provider: this.name, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -509,7 +510,7 @@ export class RedisProvider implements ICacheProvider {
    * ```
    */
   async health(): Promise<CacheHealthInfo> {
-    this.logger.debug('Basepack Cache: Provider health check', { provider: 'redis' });
+    this.logger.debug('Basepack Cache: Provider health check', { provider: this.name });
     
     const startTime = Date.now();
 
@@ -523,7 +524,7 @@ export class RedisProvider implements ICacheProvider {
       const isHealthy = response === 'PONG';
 
       this.logger.debug('Basepack Cache: Provider health checked', { 
-        provider: 'redis', 
+        provider: this.name, 
         status: isHealthy ? 'healthy' : 'unhealthy',
         responseTimeMs: responseTime
       });
@@ -542,7 +543,7 @@ export class RedisProvider implements ICacheProvider {
       const responseTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      this.logger.error('Basepack Cache: Provider health check failed', { provider: 'redis', error: errorMessage });
+      this.logger.error('Basepack Cache: Provider health check failed', { provider: this.name, error: errorMessage });
 
       return {
         provider: this.name,
@@ -567,13 +568,13 @@ export class RedisProvider implements ICacheProvider {
    * ```
    */
   async close(): Promise<void> {
-    this.logger.debug('Basepack Cache: Provider closing connection', { provider: 'redis' });
+    this.logger.debug('Basepack Cache: Provider closing connection', { provider: this.name });
     
     if (this.client) {
       this.client.removeAllListeners();
       await this.client.quit();
       this.isConnected = false;
-      this.logger.debug('Basepack Cache: Provider connection closed', { provider: 'redis' });
+      this.logger.debug('Basepack Cache: Provider connection closed', { provider: this.name });
     }
   }
 

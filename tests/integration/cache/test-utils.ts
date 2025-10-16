@@ -26,30 +26,3 @@ export function getMemcachedTestConfig() {
   };
 }
 
-/**
- * Check if Redis is available for testing
- */
-export function isRedisAvailable(): boolean {
-  return process.env.REDIS_ENABLED === 'true' || process.env.CI !== 'true';
-}
-
-/**
- * Check if Memcached is available for testing
- */
-export function isMemcachedAvailable(): boolean {
-  return process.env.MEMCACHED_ENABLED === 'true' || process.env.CI !== 'true';
-}
-
-/**
- * Skip test if provider is not available
- */
-export function skipIfNotAvailable(provider: 'redis' | 'memcached') {
-  const available = provider === 'redis' ? isRedisAvailable() : isMemcachedAvailable();
-  
-  if (!available) {
-    console.log(`Skipping ${provider} tests - provider not available`);
-  }
-  
-  return available;
-}
-

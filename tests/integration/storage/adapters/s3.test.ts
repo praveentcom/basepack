@@ -1,4 +1,5 @@
 import { StorageService } from '../../../../src/storage/service';
+import { StorageProvider } from '../../../../src/storage/types';
 import { coloredConsoleLogger } from '../../../../src/logger';
 import {
   getTestBucket,
@@ -14,7 +15,7 @@ describe('S3 Provider', () => {
 
   beforeAll(async () => {
     service = new StorageService({
-      provider: 's3',
+      provider: StorageProvider.S3,
       config: {
         bucket: testBucket,
         region: process.env.AWS_REGION || 'us-east-1',
@@ -49,7 +50,7 @@ describe('S3 Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('s3');
+    expect(result.provider).toBe(StorageProvider.S3);
   });
 
   it('should download a file from S3', async () => {
@@ -78,7 +79,7 @@ describe('S3 Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('s3');
+    expect(result.provider).toBe(StorageProvider.S3);
   });
 
   it('should generate a signed URL', async () => {
@@ -95,7 +96,7 @@ describe('S3 Provider', () => {
     const health = await service.health();
 
     expect(health.status).toBe('healthy');
-    expect(health.provider).toBe('s3');
+    expect(health.provider).toBe(StorageProvider.S3);
   });
 
   it('should upload from URL', async () => {
@@ -111,7 +112,7 @@ describe('S3 Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('s3');
+    expect(result.provider).toBe(StorageProvider.S3);
   });
 });
 

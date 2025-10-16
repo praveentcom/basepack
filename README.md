@@ -146,20 +146,22 @@ All services log with colored output by default. You can customize logging by in
 **Default Behavior (logs to console):**
 ```typescript
 import { EmailService } from 'basepack';
+import { EmailProvider } from 'basepack';
 
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: process.env.SENDGRID_API_KEY }
 });
-// Output: Basepack Email: Initializing service { provider: 'sendgrid' }
+// Output: Basepack Email: Initializing service { provider: EmailProvider.SENDGRID }
 ```
 
 **Disable Logging:**
 ```typescript
 import { EmailService, noopLogger } from 'basepack';
+import { EmailProvider } from 'basepack';
 
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: process.env.SENDGRID_API_KEY },
   logger: noopLogger  // Silent - no logs
 });
@@ -168,12 +170,13 @@ const service = new EmailService({
 **Use Custom Logger (Pino):**
 ```typescript
 import { EmailService, wrapPino } from 'basepack';
+import { EmailProvider } from 'basepack';
 import pino from 'pino';
 
 const logger = wrapPino(pino({ level: 'debug' }));
 
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: process.env.SENDGRID_API_KEY },
   logger
 });

@@ -31,21 +31,11 @@ it('should upload a file with metadata and cache control and encoding', async ()
   });
   expect(result.success).toBe(true);
   expect(result.key).toBe('test.txt');
-  expect(result.provider).toBe('s3');
+  expect(result.provider).toBe(StorageProvider.S3);
   expect(result.etag).toBeDefined();
   expect(result.timestamp).toBeInstanceOf(Date);
-  // ... more assertions
 });
 ```
-
-## Test Organization
-
-Basepack uses a two-tier testing strategy:
-
-- **Unit tests** (`tests/unit/`) - No external dependencies, mocked providers, run in CI
-- **Integration tests** (`tests/integration/`) - Real API calls, require credentials, run locally
-
-## Integration Test Standards
 
 ### Test Through Service Layer
 
@@ -64,11 +54,12 @@ Integration tests should use the service classes (`EmailService`, `StorageServic
 ```typescript
 // tests/integration/email/adapters/ses.test.ts
 import { EmailService } from '../../../../src/email/service';
+import { EmailProvider } from '../../../../src/email/types';
 
 describe('SES Provider', () => {
   it('should send email via SES', async () => {
     const service = new EmailService({
-      provider: 'ses',
+      provider: EmailProvider.SES,
       config: {
         region: process.env.AWS_REGION,
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -79,7 +70,7 @@ describe('SES Provider', () => {
     const results = await service.send({ message: getTestEmail() });
     
     expect(results[0].success).toBe(true);
-    expect(results[0].provider).toBe('ses');
+    expect(results[0].provider).toBe(EmailProvider.SES);
   });
 });
 ```
@@ -138,6 +129,7 @@ Each service module should have a `test-utils.ts` file with:
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { EmailMessage } from '../../../src/email/types';
+import { StorageProvider } from '../../../src/storage/types';
 
 dotenv.config({ path: path.join(__dirname, '..', 'test.env') });
 
@@ -165,7 +157,7 @@ describe('S3 Provider', () => {
 
   beforeAll(async () => {
     service = new StorageService({
-      provider: 's3',
+      provider: StorageProvider.S3,
       config: { /* ... */ }
     });
     

@@ -14,13 +14,14 @@ import {
   isCacheConnectionError,
   isCacheTimeoutError,
 } from '../../../src/cache/errors';
+import { CacheProvider } from '../../../src/cache/types';
 
 describe('Cache Errors', () => {
   describe('CacheError', () => {
     it('should create error with all properties', () => {
       const error = new CacheError(
         'Test error',
-        'redis',
+        CacheProvider.REDIS,
         500,
         new Error('Original'),
         true
@@ -29,50 +30,50 @@ describe('Cache Errors', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(CacheError);
       expect(error.message).toBe('Test error');
-      expect(error.provider).toBe('redis');
+      expect(error.provider).toBe(CacheProvider.REDIS);
       expect(error.statusCode).toBe(500);
       expect(error.isRetryable).toBe(true);
       expect(error.name).toBe('CacheError');
     });
 
     it('should create error with minimal properties', () => {
-      const error = new CacheError('Test error', 'redis');
+      const error = new CacheError('Test error', CacheProvider.REDIS);
 
       expect(error.message).toBe('Test error');
-      expect(error.provider).toBe('redis');
+      expect(error.provider).toBe(CacheProvider.REDIS);
       expect(error.statusCode).toBeUndefined();
       expect(error.originalError).toBeUndefined();
       expect(error.isRetryable).toBe(false);
     });
 
     it('should create from existing CacheError', () => {
-      const original = new CacheError('Original error', 'redis', 500, undefined, true);
-      const converted = CacheError.from(original, 'redis');
+      const original = new CacheError('Original error', CacheProvider.REDIS, 500, undefined, true);
+      const converted = CacheError.from(original, CacheProvider.REDIS);
 
       expect(converted).toBe(original);
     });
 
     it('should create from Error', () => {
       const original = new Error('Test error');
-      const converted = CacheError.from(original, 'redis', true);
+      const converted = CacheError.from(original, CacheProvider.REDIS, true);
 
       expect(converted).toBeInstanceOf(CacheError);
       expect(converted.message).toBe('Test error');
-      expect(converted.provider).toBe('redis');
+      expect(converted.provider).toBe(CacheProvider.REDIS);
       expect(converted.isRetryable).toBe(true);
     });
 
     it('should create from string', () => {
-      const converted = CacheError.from('String error', 'redis');
+      const converted = CacheError.from('String error', CacheProvider.REDIS);
 
       expect(converted).toBeInstanceOf(CacheError);
       expect(converted.message).toBe('String error');
-      expect(converted.provider).toBe('redis');
+      expect(converted.provider).toBe(CacheProvider.REDIS);
     });
 
     it('should extract status code from error object', () => {
       const errorWithStatus = { message: 'Error', statusCode: 503 };
-      const converted = CacheError.from(errorWithStatus, 'redis');
+      const converted = CacheError.from(errorWithStatus, CacheProvider.REDIS);
 
       expect(converted.statusCode).toBe(503);
     });
@@ -92,11 +93,11 @@ describe('Cache Errors', () => {
 
   describe('CacheProviderError', () => {
     it('should create provider error', () => {
-      const error = new CacheProviderError('redis', 'Provider not found');
+      const error = new CacheProviderError(CacheProvider.REDIS, 'Provider not found');
 
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(CacheProviderError);
-      expect(error.provider).toBe('redis');
+      expect(error.provider).toBe(CacheProvider.REDIS);
       expect(error.message).toBe('Provider not found');
       expect(error.name).toBe('CacheProviderError');
     });
@@ -107,7 +108,7 @@ describe('Cache Errors', () => {
       const originalError = new Error('Connection refused');
       const error = new CacheConnectionError(
         'Failed to connect',
-        'redis',
+        CacheProvider.REDIS,
         originalError
       );
 
@@ -115,7 +116,7 @@ describe('Cache Errors', () => {
       expect(error).toBeInstanceOf(CacheError);
       expect(error).toBeInstanceOf(CacheConnectionError);
       expect(error.message).toBe('Failed to connect');
-      expect(error.provider).toBe('redis');
+      expect(error.provider).toBe(CacheProvider.REDIS);
       expect(error.originalError).toBe(originalError);
       expect(error.isRetryable).toBe(true);
       expect(error.name).toBe('CacheConnectionError');
@@ -124,13 +125,13 @@ describe('Cache Errors', () => {
 
   describe('CacheTimeoutError', () => {
     it('should create timeout error', () => {
-      const error = new CacheTimeoutError('Operation timed out', 'redis', 5000);
+      const error = new CacheTimeoutError('Operation timed out', CacheProvider.REDIS, 5000);
 
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(CacheError);
       expect(error).toBeInstanceOf(CacheTimeoutError);
       expect(error.message).toBe('Operation timed out');
-      expect(error.provider).toBe('redis');
+      expect(error.provider).toBe(CacheProvider.REDIS);
       expect(error.timeout).toBe(5000);
       expect(error.isRetryable).toBe(true);
       expect(error.name).toBe('CacheTimeoutError');
@@ -139,7 +140,7 @@ describe('Cache Errors', () => {
 
   describe('Type Guards', () => {
     it('isCacheError should identify CacheError', () => {
-      const error = new CacheError('Test', 'redis');
+      const error = new CacheError('Test', CacheProvider.REDIS);
       const regularError = new Error('Test');
 
       expect(isCacheError(error)).toBe(true);
@@ -154,11 +155,11 @@ describe('Cache Errors', () => {
 
       expect(isCacheValidationError(error)).toBe(true);
       expect(isCacheValidationError(regularError)).toBe(false);
-      expect(isCacheValidationError(new CacheError('Test', 'redis'))).toBe(false);
+      expect(isCacheValidationError(new CacheError('Test', CacheProvider.REDIS))).toBe(false);
     });
 
     it('isCacheProviderError should identify CacheProviderError', () => {
-      const error = new CacheProviderError('redis', 'Not found');
+      const error = new CacheProviderError(CacheProvider.REDIS, 'Not found');
       const regularError = new Error('Test');
 
       expect(isCacheProviderError(error)).toBe(true);
@@ -166,7 +167,7 @@ describe('Cache Errors', () => {
     });
 
     it('isCacheConnectionError should identify CacheConnectionError', () => {
-      const error = new CacheConnectionError('Failed', 'redis');
+      const error = new CacheConnectionError('Failed', CacheProvider.REDIS);
       const regularError = new Error('Test');
 
       expect(isCacheConnectionError(error)).toBe(true);
@@ -174,7 +175,7 @@ describe('Cache Errors', () => {
     });
 
     it('isCacheTimeoutError should identify CacheTimeoutError', () => {
-      const error = new CacheTimeoutError('Timeout', 'redis', 5000);
+      const error = new CacheTimeoutError('Timeout', CacheProvider.REDIS, 5000);
       const regularError = new Error('Test');
 
       expect(isCacheTimeoutError(error)).toBe(true);
@@ -182,8 +183,8 @@ describe('Cache Errors', () => {
     });
 
     it('should handle inheritance correctly', () => {
-      const connectionError = new CacheConnectionError('Failed', 'redis');
-      const timeoutError = new CacheTimeoutError('Timeout', 'redis', 5000);
+      const connectionError = new CacheConnectionError('Failed', CacheProvider.REDIS);
+      const timeoutError = new CacheTimeoutError('Timeout', CacheProvider.REDIS, 5000);
 
       // Connection and Timeout errors are also CacheErrors
       expect(isCacheError(connectionError)).toBe(true);

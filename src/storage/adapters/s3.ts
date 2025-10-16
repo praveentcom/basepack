@@ -3,7 +3,7 @@
  * @module storage/adapters/s3
  */
 
-import type {
+import {
   IStorageProvider,
   S3Config,
   FileUploadConfig,
@@ -16,6 +16,7 @@ import type {
   FileDeleteResult,
   SignedUrlResult,
   StorageHealthInfo,
+  StorageProvider,
 } from '../types';
 import type { Logger } from '../../logger';
 import { StorageError, StorageProviderError } from '../errors';
@@ -71,7 +72,7 @@ import {
  * ```
  */
 export class S3Provider implements IStorageProvider {
-  readonly name = 's3';
+  readonly name = StorageProvider.S3;
   private readonly client: any;
   private readonly bucket: string;
   private readonly logger: Logger;
@@ -94,10 +95,10 @@ export class S3Provider implements IStorageProvider {
    */
   constructor(config: S3Config, logger: Logger = console) {
     this.logger = logger;
-    this.logger.debug('Basepack Storage: Initializing provider', { provider: 's3', bucket: config.bucket, region: config.region });
+    this.logger.debug('Basepack Storage: Initializing provider', { provider: this.name, bucket: config.bucket, region: config.region });
     
     if (!config.bucket) {
-      this.logger.error('Basepack Storage: Provider bucket missing', { provider: 's3' });
+      this.logger.error('Basepack Storage: Provider bucket missing', { provider: this.name });
       throw new StorageError('S3 bucket is required', this.name);
     }
 
@@ -124,7 +125,7 @@ export class S3Provider implements IStorageProvider {
 
       this.client = new S3Client(clientConfig);
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider initialization failed', { provider: 's3', error });
+      this.logger.error('Basepack Storage: Provider initialization failed', { provider: this.name, error });
       throw new StorageProviderError(
         this.name,
         '@aws-sdk/client-s3 is not installed. Install it with: npm install @aws-sdk/client-s3'
@@ -153,7 +154,7 @@ export class S3Provider implements IStorageProvider {
    */
   async upload(config: FileUploadConfig): Promise<FileUploadResult> {
     validateFileUpload(config);
-    this.logger.debug('Basepack Storage: Provider uploading file', { provider: 's3', bucket: this.bucket, key: config.key });
+    this.logger.debug('Basepack Storage: Provider uploading file', { provider: this.name, bucket: this.bucket, key: config.key });
 
     const startTime = Date.now();
 
@@ -185,7 +186,7 @@ export class S3Provider implements IStorageProvider {
       const command = new PutObjectCommand(params);
       const response = await this.client.send(command);
 
-      this.logger.debug('Basepack Storage: Provider file uploaded', { provider: 's3', key: config.key, etag: response.ETag });
+      this.logger.debug('Basepack Storage: Provider file uploaded', { provider: this.name, key: config.key, etag: response.ETag });
 
       return {
         success: true,
@@ -195,7 +196,7 @@ export class S3Provider implements IStorageProvider {
         etag: response.ETag,
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider upload failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider upload failed', { provider: this.name, key: config.key, error });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -230,7 +231,7 @@ export class S3Provider implements IStorageProvider {
    */
   async uploadFromUrl(config: UrlUploadConfig): Promise<FileUploadResult> {
     validateUrlUpload(config);
-    this.logger.debug('Basepack Storage: Provider uploading from URL', { provider: 's3', key: config.key, url: config.url });
+    this.logger.debug('Basepack Storage: Provider uploading from URL', { provider: this.name, key: config.key, url: config.url });
 
     try {
       // Fetch the file from URL
@@ -258,7 +259,7 @@ export class S3Provider implements IStorageProvider {
         cacheControl: config.cacheControl,
       });
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider URL upload failed', { provider: 's3', key: config.key, url: config.url, error });
+      this.logger.error('Basepack Storage: Provider URL upload failed', { provider: this.name, key: config.key, url: config.url, error });
       
       if (error instanceof StorageError) {
         return {
@@ -303,7 +304,7 @@ export class S3Provider implements IStorageProvider {
    */
   async download(config: FileDownloadConfig): Promise<FileDownloadResult> {
     validateFileDownload(config);
-    this.logger.debug('Basepack Storage: Provider downloading file', { provider: 's3', bucket: this.bucket, key: config.key });
+    this.logger.debug('Basepack Storage: Provider downloading file', { provider: this.name, bucket: this.bucket, key: config.key });
 
     try {
       const { GetObjectCommand } = require('@aws-sdk/client-s3');
@@ -323,7 +324,7 @@ export class S3Provider implements IStorageProvider {
       const buffer = Buffer.concat(chunks);
 
       this.logger.debug('Basepack Storage: Provider file downloaded', { 
-        provider: 's3',
+        provider: this.name,
         key: config.key, 
         sizeBytes: response.ContentLength,
         contentType: response.ContentType
@@ -341,7 +342,7 @@ export class S3Provider implements IStorageProvider {
         etag: response.ETag,
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider download failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider download failed', { provider: this.name, key: config.key, error });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -369,7 +370,7 @@ export class S3Provider implements IStorageProvider {
    */
   async delete(config: FileDeleteConfig): Promise<FileDeleteResult> {
     validateFileDelete(config);
-    this.logger.debug('Basepack Storage: Provider deleting file', { provider: 's3', bucket: this.bucket, key: config.key });
+    this.logger.debug('Basepack Storage: Provider deleting file', { provider: this.name, bucket: this.bucket, key: config.key });
 
     try {
       const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
@@ -381,7 +382,7 @@ export class S3Provider implements IStorageProvider {
 
       await this.client.send(command);
 
-      this.logger.debug('Basepack Storage: Provider file deleted', { provider: 's3', key: config.key });
+      this.logger.debug('Basepack Storage: Provider file deleted', { provider: this.name, key: config.key });
 
       return {
         success: true,
@@ -390,7 +391,7 @@ export class S3Provider implements IStorageProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider delete failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider delete failed', { provider: this.name, key: config.key, error });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -441,7 +442,7 @@ export class S3Provider implements IStorageProvider {
   async getSignedUrl(config: SignedUrlConfig): Promise<SignedUrlResult> {
     validateSignedUrl(config);
     this.logger.debug('Basepack Storage: Provider generating signed URL', { 
-      provider: 's3',
+      provider: this.name,
       key: config.key, 
       operation: config.operation || 'getObject',
       expiresInSec: config.expiresIn || 3600
@@ -476,7 +477,7 @@ export class S3Provider implements IStorageProvider {
       const url = await getSignedUrl(this.client, command, { expiresIn });
       const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
-      this.logger.debug('Basepack Storage: Provider signed URL generated', { provider: 's3', key: config.key, expiresAt });
+      this.logger.debug('Basepack Storage: Provider signed URL generated', { provider: this.name, key: config.key, expiresAt });
 
       return {
         success: true,
@@ -488,14 +489,14 @@ export class S3Provider implements IStorageProvider {
     } catch (error) {
       // Check if the error is due to missing presigner package
       if (error instanceof Error && error.message.includes('@aws-sdk/s3-request-presigner')) {
-        this.logger.error('Basepack Storage: Provider package missing', { provider: 's3', package: '@aws-sdk/s3-request-presigner', error });
+        this.logger.error('Basepack Storage: Provider package missing', { provider: this.name, package: '@aws-sdk/s3-request-presigner', error });
         throw new StorageProviderError(
           this.name,
           '@aws-sdk/s3-request-presigner is not installed. Install it with: npm install @aws-sdk/s3-request-presigner'
         );
       }
 
-      this.logger.error('Basepack Storage: Provider signed URL failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider signed URL failed', { provider: this.name, key: config.key, error });
       const storageError = StorageError.from(error, this.name, false);
       
       return {
@@ -526,7 +527,7 @@ export class S3Provider implements IStorageProvider {
    * ```
    */
   async health(): Promise<StorageHealthInfo> {
-    this.logger.debug('Basepack Storage: Provider health check', { provider: 's3', bucket: this.bucket });
+    this.logger.debug('Basepack Storage: Provider health check', { provider: this.name, bucket: this.bucket });
     const startTime = Date.now();
 
     try {
@@ -540,7 +541,7 @@ export class S3Provider implements IStorageProvider {
 
       const responseTime = Date.now() - startTime;
 
-      this.logger.debug('Basepack Storage: Provider health check passed', { provider: 's3', responseTimeMs: responseTime });
+      this.logger.debug('Basepack Storage: Provider health check passed', { provider: this.name, responseTimeMs: responseTime });
 
       return {
         provider: this.name,
@@ -549,7 +550,7 @@ export class S3Provider implements IStorageProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider health check failed', { provider: 's3', error });
+      this.logger.error('Basepack Storage: Provider health check failed', { provider: this.name, error });
       const storageError = StorageError.from(error, this.name);
 
       return {

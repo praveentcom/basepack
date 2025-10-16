@@ -1,4 +1,9 @@
-import { 
+/**
+ * Email service implementation
+ * @module email/service
+ */
+
+import type { 
   IEmailProvider, 
   EmailServiceConfig, 
   EmailSendResult, 
@@ -11,6 +16,7 @@ import {
   PostmarkConfig,
   SMTPConfig
 } from './types';
+import { EmailProvider } from './types';
 import type { Logger } from '../logger';
 import { SESProvider } from './adapters/ses';
 import { MailgunProvider } from './adapters/mailgun';
@@ -32,7 +38,7 @@ import { coloredConsoleLogger } from '../logger';
  * @example Single provider - AWS SES
  * ```typescript
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   config: { region: 'us-east-1' }
  * });
  * ```
@@ -40,7 +46,7 @@ import { coloredConsoleLogger } from '../logger';
  * @example Single provider - SendGrid
  * ```typescript
  * const service = new EmailService({
- *   provider: 'sendgrid',
+ *   provider: EmailProvider.SENDGRID,
  *   config: { apiKey: process.env.SENDGRID_API_KEY }
  * });
  * ```
@@ -48,7 +54,7 @@ import { coloredConsoleLogger } from '../logger';
  * @example Single provider - Mailgun
  * ```typescript
  * const service = new EmailService({
- *   provider: 'mailgun',
+ *   provider: EmailProvider.MAILGUN,
  *   config: {
  *     apiKey: process.env.MAILGUN_API_KEY,
  *     domain: 'your-domain.com',
@@ -60,7 +66,7 @@ import { coloredConsoleLogger } from '../logger';
  * @example Single provider - Resend
  * ```typescript
  * const service = new EmailService({
- *   provider: 'resend',
+ *   provider: EmailProvider.RESEND,
  *   config: { apiKey: process.env.RESEND_API_KEY }
  * });
  * ```
@@ -68,7 +74,7 @@ import { coloredConsoleLogger } from '../logger';
  * @example Single provider - Postmark
  * ```typescript
  * const service = new EmailService({
- *   provider: 'postmark',
+ *   provider: EmailProvider.POSTMARK,
  *   config: { serverToken: process.env.POSTMARK_SERVER_TOKEN }
  * });
  * ```
@@ -76,7 +82,7 @@ import { coloredConsoleLogger } from '../logger';
  * @example Single provider - SMTP
  * ```typescript
  * const service = new EmailService({
- *   provider: 'smtp',
+ *   provider: EmailProvider.SMTP,
  *   config: {
  *     host: 'smtp.gmail.com',
  *     port: 587,
@@ -88,10 +94,10 @@ import { coloredConsoleLogger } from '../logger';
  * @example With automatic failover
  * ```typescript
  * const service = new EmailService({
- *   primary: { provider: 'ses' },
+ *   primary: { provider: EmailProvider.SES },
  *   backups: [
- *     { provider: 'sendgrid', config: { apiKey: 'key' } },
- *     { provider: 'smtp', config: { host: 'smtp.gmail.com', port: 587 } }
+ *     { provider: EmailProvider.SENDGRID, config: { apiKey: 'key' } },
+ *     { provider: EmailProvider.SMTP, config: { host: 'smtp.gmail.com', port: 587 } }
  *   ]
  * });
  * ```
@@ -139,20 +145,18 @@ export class EmailService {
 
   private createProvider(config: SingleProviderConfig): IEmailProvider {
     switch (config.provider) {
-      case 'ses':
+      case EmailProvider.SES:
         return new SESProvider(config.config || {}, this.logger);
-      case 'mailgun':
+      case EmailProvider.MAILGUN:
         return new MailgunProvider(config.config || {}, this.logger);
-      case 'sendgrid':
+      case EmailProvider.SENDGRID:
         return new SendGridProvider(config.config || {}, this.logger);
-      case 'resend':
+      case EmailProvider.RESEND:
         return new ResendProvider(config.config || {}, this.logger);
-      case 'postmark':
+      case EmailProvider.POSTMARK:
         return new PostmarkProvider(config.config || {}, this.logger);
-      case 'smtp':
+      case EmailProvider.SMTP:
         return new SMTPProvider(config.config || {}, this.logger);
-      default:
-        throw new Error(`Unknown email provider`);
     }
   }
 
@@ -288,7 +292,7 @@ export class EmailService {
     // All providers failed
     this.logger.error('Basepack Email: All providers failed', { errors });
     const errorMessage = `All email providers failed. Errors: ${errors.map(e => `${e.provider}: ${e.error}`).join('; ')}`;
-    throw new EmailProviderError(errorMessage, 'all', errors);
+    throw new EmailProviderError(errorMessage, errors);
   }
 
   /**
@@ -300,9 +304,9 @@ export class EmailService {
    * ```typescript
    * const health = await service.health();
    * console.log(health.ok); // true if primary is healthy
-   * console.log(health.provider); // 'ses'
+   * console.log(health.provider); // EmailProvider.SES
    * console.log(health.primary); // { ok: true, message: '...' }
-   * console.log(health.backups); // [{ name: 'sendgrid', health: {...} }]
+   * console.log(health.backups); // [{ name: EmailProvider.SENDGRID, health: {...} }]
    * ```
    */
   async health() {

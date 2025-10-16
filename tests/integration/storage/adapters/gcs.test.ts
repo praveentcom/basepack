@@ -1,4 +1,5 @@
 import { StorageService } from '../../../../src/storage/service';
+import { StorageProvider } from '../../../../src/storage/types';
 import { coloredConsoleLogger } from '../../../../src/logger';
 import {
   getTestBucket,
@@ -35,7 +36,7 @@ describe('GCS Provider', () => {
     }
 
     service = new StorageService({
-      provider: 'gcs',
+      provider: StorageProvider.GCS,
       config,
       logger: coloredConsoleLogger(),
     });
@@ -61,7 +62,7 @@ describe('GCS Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('gcs');
+    expect(result.provider).toBe(StorageProvider.GCS);
   });
 
   it('should upload a file with metadata', async () => {
@@ -79,7 +80,7 @@ describe('GCS Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('gcs');
+    expect(result.provider).toBe(StorageProvider.GCS);
   });
 
   it('should download a file from GCS', async () => {
@@ -109,7 +110,7 @@ describe('GCS Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('gcs');
+    expect(result.provider).toBe(StorageProvider.GCS);
   });
 
   it('should generate a signed URL for reading', async () => {
@@ -143,7 +144,7 @@ describe('GCS Provider', () => {
     const health = await service.health();
 
     expect(health.status).toBe('healthy');
-    expect(health.provider).toBe('gcs');
+    expect(health.provider).toBe(StorageProvider.GCS);
     expect(health.responseTime).toBeDefined();
   });
 
@@ -160,7 +161,7 @@ describe('GCS Provider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.provider).toBe('gcs');
+    expect(result.provider).toBe(StorageProvider.GCS);
   });
 });
 

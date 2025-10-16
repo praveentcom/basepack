@@ -24,26 +24,6 @@ export enum StorageProvider {
 }
 
 /**
- * Supported storage providers
- */
-export const STORAGE_PROVIDERS = ['s3', 'gcs'] as const;
-
-/**
- * Storage provider type
- */
-export type StorageProviderType = typeof STORAGE_PROVIDERS[number];
-
-/**
- * Type guard for storage provider type
- * 
- * @param value - Value to check
- * @returns True if value is a valid storage provider type
- */
-export function isStorageProviderType(value: unknown): value is StorageProviderType {
-  return typeof value === 'string' && STORAGE_PROVIDERS.includes(value as StorageProviderType);
-}
-
-/**
  * AWS S3 storage configuration
  * 
  * @example
@@ -123,9 +103,9 @@ export interface GCSConfig {
  * Base storage provider configuration
  */
 export type StorageProviderConfig = 
-  | { provider: 's3'; config?: S3Config }
-  | { provider: 'gcs'; config?: GCSConfig }
-  | { provider: StorageProviderType; config?: Record<string, unknown> };
+  | { provider: StorageProvider.S3; config?: S3Config }
+  | { provider: StorageProvider.GCS; config?: GCSConfig }
+  | { provider: StorageProvider; config?: Record<string, unknown> };
 
 /**
  * Storage service configuration with single provider
@@ -133,7 +113,7 @@ export type StorageProviderConfig =
  * @example AWS S3
  * ```typescript
  * const config: StorageServiceConfig = {
- *   provider: 's3',
+ *   provider: StorageProvider.S3,
  *   config: {
  *     bucket: 'my-bucket',
  *     region: 'us-east-1'
@@ -144,7 +124,7 @@ export type StorageProviderConfig =
  * @example Google Cloud Storage
  * ```typescript
  * const config: StorageServiceConfig = {
- *   provider: 'gcs',
+ *   provider: StorageProvider.GCS,
  *   config: {
  *     bucket: 'my-bucket',
  *     keyFilename: '/path/to/service-account-key.json'
@@ -155,7 +135,7 @@ export type StorageProviderConfig =
  * @example With logging
  * ```typescript
  * const config: StorageServiceConfig = {
- *   provider: 's3',
+ *   provider: StorageProvider.S3,
  *   config: {
  *     bucket: 'my-bucket',
  *     region: 'us-east-1'
@@ -165,7 +145,7 @@ export type StorageProviderConfig =
  * ```
  */
 export type StorageServiceConfig = {
-  provider: StorageProviderType;
+  provider: StorageProvider;
   config?: S3Config | GCSConfig | Record<string, unknown>;
   logger?: Logger;
 }
@@ -306,7 +286,7 @@ export interface FileUploadResult {
   /** File key/path in storage */
   key: string;
   /** Storage provider used */
-  provider: string;
+  provider: StorageProvider;
   /** Upload timestamp */
   timestamp: Date;
   /** Public URL if available */
@@ -326,7 +306,7 @@ export interface FileDownloadResult {
   /** File key/path in storage */
   key: string;
   /** Storage provider used */
-  provider: string;
+  provider: StorageProvider;
   /** File data as Buffer */
   data?: Buffer;
   /** Content type */
@@ -352,7 +332,7 @@ export interface FileDeleteResult {
   /** File key/path in storage */
   key: string;
   /** Storage provider used */
-  provider: string;
+  provider: StorageProvider;
   /** Deletion timestamp */
   timestamp: Date;
   /** Error message if deletion failed */
@@ -368,7 +348,7 @@ export interface SignedUrlResult {
   /** File key/path in storage */
   key: string;
   /** Storage provider used */
-  provider: string;
+  provider: StorageProvider;
   /** Signed URL */
   url?: string;
   /** URL expiration time */
@@ -382,7 +362,7 @@ export interface SignedUrlResult {
  */
 export interface StorageHealthInfo {
   /** Provider name */
-  provider: string;
+  provider: StorageProvider;
   /** Health status */
   status: 'healthy' | 'unhealthy';
   /** Response time in milliseconds */
@@ -400,7 +380,7 @@ export interface StorageHealthInfo {
  */
 export interface IStorageProvider {
   /** Provider name */
-  readonly name: string;
+  readonly name: StorageProvider;
 
   /**
    * Upload a file to storage

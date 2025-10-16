@@ -1,4 +1,4 @@
-import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SMTPConfig, EmailSendConfig } from '../types';
+import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SMTPConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
 import type { Logger } from '../../logger';
 
@@ -40,7 +40,7 @@ import type { Logger } from '../../logger';
  * @see https://nodemailer.com/
  */
 export class SMTPProvider implements IEmailProvider {
-  readonly name = 'smtp';
+  readonly name = EmailProvider.SMTP;
   private transporter: any;
   private config: SMTPConfig;
   private logger: Logger;
@@ -55,7 +55,7 @@ export class SMTPProvider implements IEmailProvider {
    */
   constructor(config: SMTPConfig = {}, logger: Logger = console) {
     this.logger = logger;
-    this.logger.debug('Basepack Email: Initializing provider', { provider: 'smtp', host: config.host, port: config.port });
+    this.logger.debug('Basepack Email: Initializing provider', { provider: this.name, host: config.host, port: config.port });
     
     try {
       const nodemailer = require('nodemailer');
@@ -68,12 +68,12 @@ export class SMTPProvider implements IEmailProvider {
       const secure = config.secure ?? (process.env.SMTP_SECURE === 'true');
       
       if (!host) {
-        this.logger.error('Basepack Email: Provider host missing', { provider: 'smtp' });
+        this.logger.error('Basepack Email: Provider host missing', { provider: this.name });
         throw new Error('SMTP host is required. Provide it via config or SMTP_HOST environment variable.');
       }
       
       if (!port) {
-        this.logger.error('Basepack Email: Provider port missing', { provider: 'smtp' });
+        this.logger.error('Basepack Email: Provider port missing', { provider: this.name });
         throw new Error('SMTP port is required. Provide it via config or SMTP_PORT environment variable.');
       }
 
@@ -116,7 +116,7 @@ export class SMTPProvider implements IEmailProvider {
 
       this.transporter = createTransport(transportOptions);
     } catch (error) {
-      this.logger.error('Basepack Email: Provider initialization failed', { provider: 'smtp', error });
+      this.logger.error('Basepack Email: Provider initialization failed', { provider: this.name, error });
       throw new Error(
         'nodemailer is not installed. Install it with: npm install nodemailer'
       );
@@ -129,15 +129,15 @@ export class SMTPProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
-    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'smtp', count: messages.length });
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: this.name, count: messages.length });
 
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
-        this.logger.debug('Basepack Email: Provider message sent', { provider: 'smtp', messageId: result.messageId });
+        this.logger.debug('Basepack Email: Provider message sent', { provider: this.name, messageId: result.messageId });
         results.push(result);
       } catch (error) {
-        this.logger.error('Basepack Email: Provider send failed', { provider: 'smtp', to: message.to, error });
+        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

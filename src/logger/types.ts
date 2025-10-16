@@ -18,7 +18,7 @@
  * 
  * // Logs to console by default - no need to pass logger
  * const service = new EmailService({
- *   provider: 'ses'
+ *   provider: EmailProvider.SES
  * });
  * ```
  * 
@@ -27,7 +27,7 @@
  * import { EmailService, noopLogger } from 'basepack';
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: noopLogger  // Silent - no logs
  * });
  * ```
@@ -42,7 +42,7 @@
  * };
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger
  * });
  * ```
@@ -101,7 +101,7 @@ export interface Logger {
  * import { EmailService, noopLogger } from 'basepack';
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: noopLogger  // Silent - no logs
  * });
  * ```
@@ -111,7 +111,7 @@ export interface Logger {
  * import { EmailService, noopLogger } from 'basepack';
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: process.env.NODE_ENV === 'production' ? noopLogger : console
  * });
  * ```

@@ -86,7 +86,7 @@ All adapters implement the service interface. Use `require()` with try-catch for
 
 ```typescript
 export class SESProvider implements IEmailProvider {
-  readonly name = 'ses';
+  readonly name = EmailProvider.SES;
   
   constructor(config: SESConfig = {}) {
     try {
@@ -153,10 +153,10 @@ export class EmailService {
 
 ## Naming
 
-- **Classes**: `PascalCase` - `EmailService`, `SESProvider`
-- **Interfaces**: `IEmailProvider` (with `I` prefix), or `EmailMessage` (data structures)
-- **Functions**: `camelCase` - `validateEmail`, `isValid`, `withRetry`
-- **Constants**: `UPPER_SNAKE_CASE` - `EMAIL_PROVIDERS`
+- **Classes**: `PascalCase` - `ClassName`
+- **Interfaces**: `PascalCase` - `IInterfaceName`
+- **Functions**: `camelCase` - `functionName`
+- **Constants**: `UPPER_SNAKE_CASE` - `CONSTANT_NAME`
 
 ## Code Style
 

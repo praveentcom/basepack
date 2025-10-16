@@ -1,10 +1,11 @@
 import { EmailService } from '../../../../src/email/service';
+import { EmailProvider } from '../../../../src/email/types';
 import { getTestEmail } from '../test-utils';
 
 describe('SMTP Provider', () => {
   it('should send email via SMTP', async () => {
     const service = new EmailService({
-      provider: 'smtp',
+      provider: EmailProvider.SMTP,
       config: {
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587', 10),
@@ -21,18 +22,18 @@ describe('SMTP Provider', () => {
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(true);
     expect(results[0].messageId).toBeDefined();
-    expect(results[0].provider).toBe('smtp');
+    expect(results[0].provider).toBe(EmailProvider.SMTP);
   });
 
   it('should check SMTP health', async () => {
     const service = new EmailService({
-      provider: 'smtp',
+      provider: EmailProvider.SMTP,
     });
 
     const health = await service.health();
 
     expect(health.ok).toBe(true);
-    expect(health.provider).toBe('smtp');
+    expect(health.provider).toBe(EmailProvider.SMTP);
   });
 });
 

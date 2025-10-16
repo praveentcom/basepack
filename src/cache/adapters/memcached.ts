@@ -17,6 +17,7 @@ import type {
   CacheClearResult,
   CacheHealthInfo,
 } from '../types';
+import { CacheProvider } from '../types';
 import type { Logger } from '../../logger';
 import { CacheError, CacheProviderError, CacheConnectionError } from '../errors';
 import {
@@ -72,7 +73,7 @@ import {
  * ```
  */
 export class MemcachedProvider implements ICacheProvider {
-  readonly name = 'memcached';
+  readonly name = CacheProvider.MEMCACHED;
   private readonly client: any;
   private readonly keyPrefix: string;
   private readonly logger: Logger;
@@ -99,7 +100,7 @@ export class MemcachedProvider implements ICacheProvider {
     const servers = this.parseServers(config.servers);
     
     this.logger.debug('Basepack Cache: Initializing provider', { 
-      provider: 'memcached', 
+      provider: this.name, 
       servers,
       keyPrefix: this.keyPrefix
     });
@@ -121,7 +122,7 @@ export class MemcachedProvider implements ICacheProvider {
       // Set up event handlers
       this.client.on('issue', (details: any) => {
         this.logger.error('Basepack Cache: Provider issue', { 
-          provider: 'memcached', 
+          provider: this.name, 
           server: details.server,
           tokens: details.tokens,
           messages: details.messages
@@ -130,7 +131,7 @@ export class MemcachedProvider implements ICacheProvider {
 
       this.client.on('failure', (details: any) => {
         this.logger.error('Basepack Cache: Provider failure', { 
-          provider: 'memcached', 
+          provider: this.name, 
           server: details.server,
           tokens: details.tokens,
           messages: details.messages
@@ -139,7 +140,7 @@ export class MemcachedProvider implements ICacheProvider {
 
       this.client.on('reconnecting', (details: any) => {
         this.logger.debug('Basepack Cache: Provider reconnecting', { 
-          provider: 'memcached', 
+          provider: this.name, 
           server: details.server,
           attempt: details.attempt
         });
@@ -147,13 +148,13 @@ export class MemcachedProvider implements ICacheProvider {
 
       this.client.on('reconnect', (details: any) => {
         this.logger.debug('Basepack Cache: Provider reconnected', { 
-          provider: 'memcached', 
+          provider: this.name, 
           server: details.server
         });
       });
 
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider initialization failed', { provider: 'memcached', error });
+      this.logger.error('Basepack Cache: Provider initialization failed', { provider: this.name, error });
       throw new CacheProviderError(
         this.name,
         'memcached is not installed. Install it with: npm install memcached'
@@ -232,13 +233,13 @@ export class MemcachedProvider implements ICacheProvider {
     validateCacheGetConfig(config);
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider getting value', { provider: 'memcached', key: fullKey });
+    this.logger.debug('Basepack Cache: Provider getting value', { provider: this.name, key: fullKey });
 
     try {
       const value = await this.promisify<string | undefined>('get', fullKey);
 
       if (value === undefined || value === null) {
-        this.logger.debug('Basepack Cache: Provider key not found', { provider: 'memcached', key: fullKey });
+        this.logger.debug('Basepack Cache: Provider key not found', { provider: this.name, key: fullKey });
         return {
           success: true,
           key: config.key,
@@ -256,7 +257,7 @@ export class MemcachedProvider implements ICacheProvider {
         parsedValue = value as T;
       }
 
-      this.logger.debug('Basepack Cache: Provider value retrieved', { provider: 'memcached', key: fullKey });
+      this.logger.debug('Basepack Cache: Provider value retrieved', { provider: this.name, key: fullKey });
 
       return {
         success: true,
@@ -266,7 +267,7 @@ export class MemcachedProvider implements ICacheProvider {
         provider: this.name,
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider get failed', { provider: 'memcached', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider get failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -299,7 +300,7 @@ export class MemcachedProvider implements ICacheProvider {
     validateCacheSetConfig(config);
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider setting value', { provider: 'memcached', key: fullKey, ttl: config.ttl });
+    this.logger.debug('Basepack Cache: Provider setting value', { provider: this.name, key: fullKey, ttl: config.ttl });
 
     try {
       // Serialize value to JSON if it's an object
@@ -312,7 +313,7 @@ export class MemcachedProvider implements ICacheProvider {
 
       await this.promisify<boolean>('set', fullKey, serialized, ttl);
 
-      this.logger.debug('Basepack Cache: Provider value set', { provider: 'memcached', key: fullKey });
+      this.logger.debug('Basepack Cache: Provider value set', { provider: this.name, key: fullKey });
 
       return {
         success: true,
@@ -321,7 +322,7 @@ export class MemcachedProvider implements ICacheProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider set failed', { provider: 'memcached', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider set failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -350,12 +351,12 @@ export class MemcachedProvider implements ICacheProvider {
     validateCacheDeleteConfig(config);
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider deleting value', { provider: 'memcached', key: fullKey });
+    this.logger.debug('Basepack Cache: Provider deleting value', { provider: this.name, key: fullKey });
 
     try {
       await this.promisify<boolean>('del', fullKey);
 
-      this.logger.debug('Basepack Cache: Provider value deleted', { provider: 'memcached', key: fullKey });
+      this.logger.debug('Basepack Cache: Provider value deleted', { provider: this.name, key: fullKey });
 
       return {
         success: true,
@@ -364,7 +365,7 @@ export class MemcachedProvider implements ICacheProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider delete failed', { provider: 'memcached', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider delete failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -399,14 +400,14 @@ export class MemcachedProvider implements ICacheProvider {
     validateCacheHasConfig(config);
 
     const fullKey = this.buildKey(config.key);
-    this.logger.debug('Basepack Cache: Provider checking existence', { provider: 'memcached', key: fullKey });
+    this.logger.debug('Basepack Cache: Provider checking existence', { provider: this.name, key: fullKey });
 
     try {
       // Memcached doesn't have an EXISTS command, so we use GET
       const value = await this.promisify<string | undefined>('get', fullKey);
       const exists = value !== undefined && value !== null;
 
-      this.logger.debug('Basepack Cache: Provider existence checked', { provider: 'memcached', key: fullKey, exists });
+      this.logger.debug('Basepack Cache: Provider existence checked', { provider: this.name, key: fullKey, exists });
 
       return {
         success: true,
@@ -415,7 +416,7 @@ export class MemcachedProvider implements ICacheProvider {
         provider: this.name,
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider has failed', { provider: 'memcached', key: fullKey, error });
+      this.logger.error('Basepack Cache: Provider has failed', { provider: this.name, key: fullKey, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -444,14 +445,14 @@ export class MemcachedProvider implements ICacheProvider {
    */
   async clear(): Promise<CacheClearResult> {
     this.logger.warn('Basepack Cache: Provider clearing entire cache', { 
-      provider: 'memcached',
+      provider: this.name,
       note: 'This will flush all keys on all servers'
     });
 
     try {
       await this.promisify<boolean[]>('flush');
 
-      this.logger.info('Basepack Cache: Provider cache cleared', { provider: 'memcached' });
+      this.logger.info('Basepack Cache: Provider cache cleared', { provider: this.name });
 
       return {
         success: true,
@@ -459,7 +460,7 @@ export class MemcachedProvider implements ICacheProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Cache: Provider clear failed', { provider: 'memcached', error });
+      this.logger.error('Basepack Cache: Provider clear failed', { provider: this.name, error });
       const cacheError = CacheError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -485,7 +486,7 @@ export class MemcachedProvider implements ICacheProvider {
    * ```
    */
   async health(): Promise<CacheHealthInfo> {
-    this.logger.debug('Basepack Cache: Provider health check', { provider: 'memcached' });
+    this.logger.debug('Basepack Cache: Provider health check', { provider: this.name });
     
     const startTime = Date.now();
     const testKey = '__health_check__';
@@ -500,7 +501,7 @@ export class MemcachedProvider implements ICacheProvider {
       const isHealthy = value === 'ping';
 
       this.logger.debug('Basepack Cache: Provider health checked', { 
-        provider: 'memcached', 
+        provider: this.name, 
         status: isHealthy ? 'healthy' : 'unhealthy',
         responseTimeMs: responseTime
       });
@@ -518,7 +519,7 @@ export class MemcachedProvider implements ICacheProvider {
       const responseTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      this.logger.error('Basepack Cache: Provider health check failed', { provider: 'memcached', error: errorMessage });
+      this.logger.error('Basepack Cache: Provider health check failed', { provider: this.name, error: errorMessage });
 
       return {
         provider: this.name,
@@ -540,11 +541,11 @@ export class MemcachedProvider implements ICacheProvider {
    * ```
    */
   async close(): Promise<void> {
-    this.logger.debug('Basepack Cache: Provider closing connection', { provider: 'memcached' });
+    this.logger.debug('Basepack Cache: Provider closing connection', { provider: this.name });
     
     if (this.client) {
       this.client.end();
-      this.logger.debug('Basepack Cache: Provider connection closed', { provider: 'memcached' });
+      this.logger.debug('Basepack Cache: Provider connection closed', { provider: this.name });
     }
   }
 

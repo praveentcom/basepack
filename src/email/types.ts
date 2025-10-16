@@ -36,7 +36,7 @@ export interface EmailSendResult {
   /** Error message if the send failed */
   error?: string;
   /** Name of the provider that handled this email */
-  provider: string;
+  provider: EmailProvider;
   /** Timestamp when the send operation completed */
   timestamp: Date;
 }
@@ -178,7 +178,7 @@ export function isBatchMessageConfig(
  */
 export interface IEmailProvider {
   /** Unique name of the email provider */
-  readonly name: string;
+  readonly name: EmailProvider;
   
   /**
    * Sends an email or batch of emails.
@@ -214,29 +214,6 @@ export enum EmailProvider {
   RESEND = 'resend',
   POSTMARK = 'postmark',
   SMTP = 'smtp'
-}
-
-/**
- * Supported email provider types.
- */
-export const EMAIL_PROVIDERS = ['ses', 'sendgrid', 'mailgun', 'resend', 'postmark', 'smtp'] as const;
-export type EmailProviderType = typeof EMAIL_PROVIDERS[number];
-
-/**
- * Type guard to check if a string is a valid email provider type.
- * 
- * @param value - Value to check
- * @returns `true` if value is a valid provider type
- * 
- * @example
- * ```typescript
- * if (isEmailProviderType('ses')) {
- *   // TypeScript knows value is EmailProviderType
- * }
- * ```
- */
-export function isEmailProviderType(value: unknown): value is EmailProviderType {
-  return typeof value === 'string' && EMAIL_PROVIDERS.includes(value as EmailProviderType);
 }
 
 /**
@@ -355,18 +332,18 @@ export interface SMTPConfig {
  * @example
  * ```typescript
  * const sesConfig: SingleProviderConfig = {
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   config: { region: 'us-east-1' }
  * };
  * ```
  */
 export type SingleProviderConfig = 
-  | { provider: 'ses'; config?: SESConfig }
-  | { provider: 'sendgrid'; config?: SendGridConfig }
-  | { provider: 'mailgun'; config?: MailgunConfig }
-  | { provider: 'resend'; config?: ResendConfig }
-  | { provider: 'postmark'; config?: PostmarkConfig }
-  | { provider: 'smtp'; config?: SMTPConfig };
+  | { provider: EmailProvider.SES; config?: SESConfig }
+  | { provider: EmailProvider.SENDGRID; config?: SendGridConfig }
+  | { provider: EmailProvider.MAILGUN; config?: MailgunConfig }
+  | { provider: EmailProvider.RESEND; config?: ResendConfig }
+  | { provider: EmailProvider.POSTMARK; config?: PostmarkConfig }
+  | { provider: EmailProvider.SMTP; config?: SMTPConfig };
 
 /**
  * EmailService configuration with optional backup providers for automatic failover.
@@ -379,22 +356,22 @@ export type SingleProviderConfig =
  * ```typescript
  * // Single provider
  * const config: EmailServiceConfig = {
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   config: { region: 'us-east-1' }
  * };
  * 
  * // With failover
  * const config: EmailServiceConfig = {
- *   primary: { provider: 'ses' },
+ *   primary: { provider: EmailProvider.SES },
  *   backups: [
- *     { provider: 'sendgrid', config: { apiKey: 'key' } },
- *     { provider: 'smtp', config: { host: 'smtp.gmail.com', port: 587 } }
+ *     { provider: EmailProvider.SENDGRID, config: { apiKey: 'key' } },
+ *     { provider: EmailProvider.SMTP, config: { host: 'smtp.gmail.com', port: 587 } }
  *   ]
  * };
  * 
  * // With logging
  * const config: EmailServiceConfig = {
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   config: { region: 'us-east-1' },
  *   logger: console
  * };

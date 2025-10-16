@@ -467,7 +467,7 @@ new EmailService(config: EmailServiceConfig)
 **Single Provider:**
 ```typescript
 {
-  provider: EmailProvider, // or 'ses' | 'sendgrid' | 'mailgun' | 'resend' | 'postmark' | 'smtp'
+  provider: EmailProvider,
   config?: ProviderConfig
 }
 ```
@@ -520,7 +520,7 @@ const results = await service.send({
 });
 
 console.log(results[0].messageId); // Message ID from provider
-console.log(results[0].provider);  // 'ses'
+console.log(results[0].provider);  // EmailProvider
 console.log(results[0].success);   // true
 ```
 

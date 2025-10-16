@@ -1,4 +1,4 @@
-import { IEmailProvider, EmailMessage, EmailBaseOptions, EmailSendResult, EmailHealthInfo, SendGridConfig, EmailSendConfig } from '../types';
+import { IEmailProvider, EmailMessage, EmailBaseOptions, EmailSendResult, EmailHealthInfo, SendGridConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
 import type { Logger } from '../../logger';
 
@@ -32,7 +32,7 @@ import type { Logger } from '../../logger';
  * @see https://sendgrid.com/
  */
 export class SendGridProvider implements IEmailProvider {
-  readonly name = 'sendgrid';
+  readonly name = EmailProvider.SENDGRID;
   private config: Required<SendGridConfig>;
   private logger: Logger;
 
@@ -45,12 +45,12 @@ export class SendGridProvider implements IEmailProvider {
    */
   constructor(config: SendGridConfig = {}, logger: Logger = console) {
     this.logger = logger;
-    this.logger.debug('Basepack Email: Initializing provider', { provider: 'sendgrid' });
+    this.logger.debug('Basepack Email: Initializing provider', { provider: this.name });
     
     const apiKey = config.apiKey ?? process.env.SENDGRID_API_KEY;
     
     if (!apiKey) {
-      this.logger.error('Basepack Email: Provider API key missing', { provider: 'sendgrid' });
+      this.logger.error('Basepack Email: Provider API key missing', { provider: this.name });
       throw new Error('SendGrid API key is required. Provide it via config or SENDGRID_API_KEY environment variable.');
     }
 
@@ -66,15 +66,15 @@ export class SendGridProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
-    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'sendgrid', count: messages.length });
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: this.name, count: messages.length });
 
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
-        this.logger.debug('Basepack Email: Provider message sent', { provider: 'sendgrid', messageId: result.messageId });
+        this.logger.debug('Basepack Email: Provider message sent', { provider: this.name, messageId: result.messageId });
         results.push(result);
       } catch (error) {
-        this.logger.error('Basepack Email: Provider send failed', { provider: 'sendgrid', to: message.to, error });
+        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

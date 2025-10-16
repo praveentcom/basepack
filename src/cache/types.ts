@@ -24,26 +24,6 @@ export enum CacheProvider {
 }
 
 /**
- * Supported cache providers
- */
-export const CACHE_PROVIDERS = ['redis', 'memcached'] as const;
-
-/**
- * Cache provider type
- */
-export type CacheProviderType = typeof CACHE_PROVIDERS[number];
-
-/**
- * Type guard for cache provider type
- * 
- * @param value - Value to check
- * @returns True if value is a valid cache provider type
- */
-export function isCacheProviderType(value: unknown): value is CacheProviderType {
-  return typeof value === 'string' && CACHE_PROVIDERS.includes(value as CacheProviderType);
-}
-
-/**
  * Redis cache configuration
  * 
  * @example Basic Redis connection
@@ -145,7 +125,7 @@ export interface MemcachedConfig {
  * @example Redis
  * ```typescript
  * const config: CacheServiceConfig = {
- *   provider: 'redis',
+ *   provider: CacheProvider.REDIS,
  *   config: {
  *     host: 'localhost',
  *     port: 6379
@@ -156,7 +136,7 @@ export interface MemcachedConfig {
  * @example Memcached
  * ```typescript
  * const config: CacheServiceConfig = {
- *   provider: 'memcached',
+ *   provider: CacheProvider.MEMCACHED,
  *   config: {
  *     servers: ['localhost:11211']
  *   }
@@ -166,7 +146,7 @@ export interface MemcachedConfig {
  * @example With logging
  * ```typescript
  * const config: CacheServiceConfig = {
- *   provider: 'redis',
+ *   provider: CacheProvider.REDIS,
  *   config: {
  *     host: 'localhost',
  *     port: 6379
@@ -176,7 +156,7 @@ export interface MemcachedConfig {
  * ```
  */
 export type CacheServiceConfig = {
-  provider: CacheProviderType;
+  provider: CacheProvider;
   config?: RedisConfig | MemcachedConfig | Record<string, unknown>;
   logger?: Logger;
 }
@@ -260,7 +240,7 @@ export interface CacheGetResult<T = any> {
   /** Whether the key was found in cache */
   found: boolean;
   /** Cache provider used */
-  provider: string;
+  provider: CacheProvider;
   /** Error message if operation failed */
   error?: string;
 }
@@ -274,7 +254,7 @@ export interface CacheSetResult {
   /** Cache key */
   key: string;
   /** Cache provider used */
-  provider: string;
+  provider: CacheProvider;
   /** Timestamp of operation */
   timestamp: Date;
   /** Error message if operation failed */
@@ -290,7 +270,7 @@ export interface CacheDeleteResult {
   /** Cache key */
   key: string;
   /** Cache provider used */
-  provider: string;
+  provider: CacheProvider;
   /** Timestamp of operation */
   timestamp: Date;
   /** Error message if operation failed */
@@ -308,7 +288,7 @@ export interface CacheHasResult {
   /** Whether the key exists in cache */
   exists: boolean;
   /** Cache provider used */
-  provider: string;
+  provider: CacheProvider;
   /** Error message if operation failed */
   error?: string;
 }
@@ -320,7 +300,7 @@ export interface CacheClearResult {
   /** Whether the operation was successful */
   success: boolean;
   /** Cache provider used */
-  provider: string;
+  provider: CacheProvider;
   /** Timestamp of operation */
   timestamp: Date;
   /** Error message if operation failed */
@@ -332,7 +312,7 @@ export interface CacheClearResult {
  */
 export interface CacheHealthInfo {
   /** Provider name */
-  provider: string;
+  provider: CacheProvider;
   /** Health status */
   status: 'healthy' | 'unhealthy';
   /** Response time in milliseconds */
@@ -352,7 +332,7 @@ export interface CacheHealthInfo {
  */
 export interface ICacheProvider {
   /** Provider name */
-  readonly name: string;
+  readonly name: CacheProvider;
 
   /**
    * Get a value from cache

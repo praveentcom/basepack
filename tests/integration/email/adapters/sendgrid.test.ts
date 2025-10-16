@@ -1,10 +1,11 @@
 import { EmailService } from '../../../../src/email/service';
+import { EmailProvider } from '../../../../src/email/types';
 import { getTestEmail } from '../test-utils';
 
 describe('SendGrid Provider', () => {
   it('should send email via SendGrid', async () => {
     const service = new EmailService({
-      provider: 'sendgrid',
+      provider: EmailProvider.SENDGRID,
       config: {
         apiKey: process.env.SENDGRID_API_KEY,
       },
@@ -14,18 +15,18 @@ describe('SendGrid Provider', () => {
 
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(true);
-    expect(results[0].provider).toBe('sendgrid');
+    expect(results[0].provider).toBe(EmailProvider.SENDGRID);
   });
 
   it('should check SendGrid health', async () => {
     const service = new EmailService({
-      provider: 'sendgrid',
+      provider: EmailProvider.SENDGRID,
     });
 
     const health = await service.health();
 
     expect(health.ok).toBe(true);
-    expect(health.provider).toBe('sendgrid');
+    expect(health.provider).toBe(EmailProvider.SENDGRID);
   });
 });
 

@@ -19,6 +19,7 @@ import type {
   CacheClearResult,
   CacheHealthInfo,
 } from './types';
+import { CacheProvider } from './types';
 import type { Logger } from '../logger';
 import { coloredConsoleLogger } from '../logger';
 import { CacheProviderError } from './errors';
@@ -33,7 +34,7 @@ import { RedisProvider, MemcachedProvider } from './adapters';
  * @example Redis
  * ```typescript
  * const cache = new CacheService({
- *   provider: 'redis',
+ *   provider: CacheProvider.REDIS,
  *   config: {
  *     host: 'localhost',
  *     port: 6379
@@ -67,7 +68,7 @@ import { RedisProvider, MemcachedProvider } from './adapters';
  * @example Memcached
  * ```typescript
  * const cache = new CacheService({
- *   provider: 'memcached',
+ *   provider: CacheProvider.MEMCACHED,
  *   config: {
  *     servers: ['localhost:11211']
  *   }
@@ -83,7 +84,7 @@ import { RedisProvider, MemcachedProvider } from './adapters';
  * @example With logging
  * ```typescript
  * const cache = new CacheService({
- *   provider: 'redis',
+ *   provider: CacheProvider.REDIS,
  *   config: {
  *     host: 'localhost',
  *     port: 6379
@@ -96,7 +97,7 @@ import { RedisProvider, MemcachedProvider } from './adapters';
  * ```typescript
  * // Set REDIS_HOST, REDIS_PORT, REDIS_PASSWORD in environment
  * const cache = new CacheService({
- *   provider: 'redis'
+ *   provider: CacheProvider.REDIS
  * });
  * ```
  */
@@ -113,7 +114,7 @@ export class CacheService {
    * @example
    * ```typescript
    * const cache = new CacheService({
-   *   provider: 'redis',
+   *   provider: CacheProvider.REDIS,
    *   config: {
    *     host: 'localhost',
    *     port: 6379
@@ -406,7 +407,7 @@ export class CacheService {
    * @example
    * ```typescript
    * const providerName = cache.getProviderName();
-   * console.log(`Using provider: ${providerName}`); // "redis" or "memcached"
+   * console.log(`Using provider: ${providerName}`);
    * ```
    */
   getProviderName(): string {
@@ -422,15 +423,14 @@ export class CacheService {
    */
   private createProvider(config: CacheServiceConfig): ICacheProvider {
     switch (config.provider) {
-      case 'redis':
+      case CacheProvider.REDIS:
         return new RedisProvider((config.config || {}) as RedisConfig, this.logger);
       
-      case 'memcached':
+      case CacheProvider.MEMCACHED:
         return new MemcachedProvider((config.config || {}) as MemcachedConfig, this.logger);
       
       default:
-        throw new CacheProviderError(
-          config.provider,
+        throw new Error(
           `Unsupported cache provider: ${config.provider}`
         );
     }

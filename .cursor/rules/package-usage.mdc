@@ -23,8 +23,8 @@ npm install nodemailer             # For SMTP
 Users import from the main package:
 
 ```typescript
-// Import service classes
-import { EmailService } from 'basepack';
+// Import service classes and enums
+import { EmailService, EmailProvider } from 'basepack';
 
 // Import types
 import type { EmailMessage, EmailSendResult } from 'basepack';
@@ -41,10 +41,10 @@ import { isValidEmail, validateEmailMessage } from 'basepack';
 ### Pattern 1: Single Provider (Simple)
 
 ```typescript
-import { EmailService } from 'basepack';
+import { EmailService, EmailProvider } from 'basepack';
 
 const emailService = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: process.env.SENDGRID_API_KEY }
 });
 
@@ -62,10 +62,10 @@ await emailService.send({
 
 ```typescript
 const emailService = new EmailService({
-  primary: { provider: 'ses' },
+  primary: { provider: EmailProvider.SES },
   backups: [
-    { provider: 'sendgrid', config: { apiKey: process.env.SENDGRID_API_KEY } },
-    { provider: 'smtp', config: { host: 'smtp.gmail.com', port: 587 } }
+    { provider: EmailProvider.SENDGRID, config: { apiKey: process.env.SENDGRID_API_KEY } },
+    { provider: EmailProvider.SMTP, config: { host: 'smtp.gmail.com', port: 587 } }
   ]
 });
 ```
@@ -135,7 +135,9 @@ SMTP_PASS=app-password
 Then initialize without config objects:
 
 ```typescript
-const emailService = new EmailService({ provider: 'sendgrid' });
+import { EmailService, EmailProvider } from 'basepack';
+
+const emailService = new EmailService({ provider: EmailProvider.SENDGRID });
 // Reads from SENDGRID_API_KEY automatically
 ```
 
@@ -143,11 +145,13 @@ const emailService = new EmailService({ provider: 'sendgrid' });
 
 ### Provider-Specific Config
 
-When users type `provider: 'mailgun'`, TypeScript autocompletes available config fields:
+When users type `provider: EmailProvider.MAILGUN`, TypeScript autocompletes available config fields:
 
 ```typescript
+import { EmailService, EmailProvider } from 'basepack';
+
 const service = new EmailService({
-  provider: 'mailgun',
+  provider: EmailProvider.MAILGUN,
   config: {
     // Autocomplete shows: apiKey, domain, region, endpoint
     apiKey: '...',
@@ -178,10 +182,10 @@ await service.send({ message: {...}, messages: [{...}] });
 
 ```typescript
 // app/services/email.ts
-import { EmailService } from 'basepack';
+import { EmailService, EmailProvider } from 'basepack';
 
 export const emailService = new EmailService({
-  provider: 'sendgrid'
+  provider: EmailProvider.SENDGRID
 });
 
 // app/controllers/user.ts
@@ -203,11 +207,11 @@ async function sendWelcomeEmail(user: User) {
 
 ```typescript
 // config/email.ts
-import { EmailService } from 'basepack';
+import { EmailService, EmailProvider } from 'basepack';
 
 export const emailService = new EmailService({
-  primary: { provider: 'ses' },
-  backups: [{ provider: 'sendgrid' }]
+  primary: { provider: EmailProvider.SES },
+  backups: [{ provider: EmailProvider.SENDGRID }]
 });
 
 // If SES fails, automatically falls back to SendGrid

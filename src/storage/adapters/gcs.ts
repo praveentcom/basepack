@@ -3,7 +3,7 @@
  * @module storage/adapters/gcs
  */
 
-import type {
+import {
   IStorageProvider,
   GCSConfig,
   FileUploadConfig,
@@ -16,6 +16,7 @@ import type {
   FileDeleteResult,
   SignedUrlResult,
   StorageHealthInfo,
+  StorageProvider,
 } from '../types';
 import type { Logger } from '../../logger';
 import { StorageError, StorageProviderError } from '../errors';
@@ -75,7 +76,7 @@ import {
  * ```
  */
 export class GCSProvider implements IStorageProvider {
-  readonly name = 'gcs';
+  readonly name = StorageProvider.GCS;
   private readonly storage: any;
   private readonly bucket: any;
   private readonly logger: Logger;
@@ -99,13 +100,13 @@ export class GCSProvider implements IStorageProvider {
   constructor(config: GCSConfig, logger: Logger = console) {
     this.logger = logger;
     this.logger.debug('Basepack Storage: Initializing provider', { 
-      provider: 'gcs', 
+      provider: this.name, 
       bucket: config.bucket, 
       projectId: config.projectId 
     });
     
     if (!config.bucket) {
-      this.logger.error('Basepack Storage: Provider bucket missing', { provider: 'gcs' });
+      this.logger.error('Basepack Storage: Provider bucket missing', { provider: this.name });
       throw new StorageError('GCS bucket is required', this.name);
     }
 
@@ -133,7 +134,7 @@ export class GCSProvider implements IStorageProvider {
       this.storage = new Storage(storageConfig);
       this.bucket = this.storage.bucket(config.bucket);
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider initialization failed', { provider: 'gcs', error });
+      this.logger.error('Basepack Storage: Provider initialization failed', { provider: this.name, error });
       throw new StorageProviderError(
         this.name,
         '@google-cloud/storage is not installed. Install it with: npm install @google-cloud/storage'
@@ -163,7 +164,7 @@ export class GCSProvider implements IStorageProvider {
   async upload(config: FileUploadConfig): Promise<FileUploadResult> {
     validateFileUpload(config);
     this.logger.debug('Basepack Storage: Provider uploading file', { 
-      provider: 'gcs', 
+      provider: this.name, 
       bucket: this.bucket.name, 
       key: config.key 
     });
@@ -205,7 +206,7 @@ export class GCSProvider implements IStorageProvider {
       const [metadata] = await file.getMetadata();
 
       this.logger.debug('Basepack Storage: Provider file uploaded', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         etag: metadata.etag 
       });
@@ -219,7 +220,7 @@ export class GCSProvider implements IStorageProvider {
       };
     } catch (error) {
       this.logger.error('Basepack Storage: Provider upload failed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         error 
       });
@@ -258,7 +259,7 @@ export class GCSProvider implements IStorageProvider {
   async uploadFromUrl(config: UrlUploadConfig): Promise<FileUploadResult> {
     validateUrlUpload(config);
     this.logger.debug('Basepack Storage: Provider uploading from URL', { 
-      provider: 'gcs', 
+      provider: this.name, 
       key: config.key, 
       url: config.url 
     });
@@ -290,7 +291,7 @@ export class GCSProvider implements IStorageProvider {
       });
     } catch (error) {
       this.logger.error('Basepack Storage: Provider URL upload failed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         url: config.url, 
         error 
@@ -340,7 +341,7 @@ export class GCSProvider implements IStorageProvider {
   async download(config: FileDownloadConfig): Promise<FileDownloadResult> {
     validateFileDownload(config);
     this.logger.debug('Basepack Storage: Provider downloading file', { 
-      provider: 'gcs', 
+      provider: this.name, 
       bucket: this.bucket.name, 
       key: config.key 
     });
@@ -355,7 +356,7 @@ export class GCSProvider implements IStorageProvider {
       const [metadata] = await file.getMetadata();
 
       this.logger.debug('Basepack Storage: Provider file downloaded', { 
-        provider: 'gcs',
+        provider: this.name,
         key: config.key, 
         sizeBytes: metadata.size,
         contentType: metadata.contentType
@@ -374,7 +375,7 @@ export class GCSProvider implements IStorageProvider {
       };
     } catch (error) {
       this.logger.error('Basepack Storage: Provider download failed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         error 
       });
@@ -406,7 +407,7 @@ export class GCSProvider implements IStorageProvider {
   async delete(config: FileDeleteConfig): Promise<FileDeleteResult> {
     validateFileDelete(config);
     this.logger.debug('Basepack Storage: Provider deleting file', { 
-      provider: 'gcs', 
+      provider: this.name, 
       bucket: this.bucket.name, 
       key: config.key 
     });
@@ -416,7 +417,7 @@ export class GCSProvider implements IStorageProvider {
       await file.delete();
 
       this.logger.debug('Basepack Storage: Provider file deleted', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key 
       });
 
@@ -428,7 +429,7 @@ export class GCSProvider implements IStorageProvider {
       };
     } catch (error) {
       this.logger.error('Basepack Storage: Provider delete failed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         error 
       });
@@ -482,7 +483,7 @@ export class GCSProvider implements IStorageProvider {
   async getSignedUrl(config: SignedUrlConfig): Promise<SignedUrlResult> {
     validateSignedUrl(config);
     this.logger.debug('Basepack Storage: Provider generating signed URL', { 
-      provider: 'gcs',
+      provider: this.name,
       key: config.key, 
       operation: config.operation || 'getObject',
       expiresInSec: config.expiresIn || 3600
@@ -507,7 +508,7 @@ export class GCSProvider implements IStorageProvider {
       const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
       this.logger.debug('Basepack Storage: Provider signed URL generated', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         expiresAt 
       });
@@ -521,7 +522,7 @@ export class GCSProvider implements IStorageProvider {
       };
     } catch (error) {
       this.logger.error('Basepack Storage: Provider signed URL failed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         key: config.key, 
         error 
       });
@@ -556,7 +557,7 @@ export class GCSProvider implements IStorageProvider {
    */
   async health(): Promise<StorageHealthInfo> {
     this.logger.debug('Basepack Storage: Provider health check', { 
-      provider: 'gcs', 
+      provider: this.name, 
       bucket: this.bucket.name 
     });
     const startTime = Date.now();
@@ -572,7 +573,7 @@ export class GCSProvider implements IStorageProvider {
       const responseTime = Date.now() - startTime;
 
       this.logger.debug('Basepack Storage: Provider health check passed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         responseTimeMs: responseTime 
       });
 
@@ -584,7 +585,7 @@ export class GCSProvider implements IStorageProvider {
       };
     } catch (error) {
       this.logger.error('Basepack Storage: Provider health check failed', { 
-        provider: 'gcs', 
+        provider: this.name, 
         error 
       });
       const storageError = StorageError.from(error, this.name);

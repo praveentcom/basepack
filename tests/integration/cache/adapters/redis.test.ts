@@ -8,13 +8,10 @@
  */
 
 import { RedisProvider } from '../../../../src/cache/adapters/redis';
-import { getRedisTestConfig, skipIfNotAvailable } from '../test-utils';
+import { CacheProvider } from '../../../../src/cache/types';
+import { getRedisTestConfig } from '../test-utils';
 
 describe('RedisProvider Integration Tests', () => {
-  if (!skipIfNotAvailable('redis')) {
-    return;
-  }
-
   let provider: RedisProvider;
   const testKeys: string[] = [];
 
@@ -41,7 +38,7 @@ describe('RedisProvider Integration Tests', () => {
     it('should connect to Redis', async () => {
       const health = await provider.health();
       expect(health.status).toBe('healthy');
-      expect(health.provider).toBe('redis');
+      expect(health.provider).toBe(CacheProvider.REDIS);
       expect(health.responseTime).toBeGreaterThanOrEqual(0);
     });
   });
@@ -275,7 +272,7 @@ describe('RedisProvider Integration Tests', () => {
     it('should report healthy status', async () => {
       const health = await provider.health();
 
-      expect(health.provider).toBe('redis');
+      expect(health.provider).toBe(CacheProvider.REDIS);
       expect(health.status).toBe('healthy');
       expect(health.responseTime).toBeGreaterThanOrEqual(0);
       expect(health.timestamp).toBeInstanceOf(Date);

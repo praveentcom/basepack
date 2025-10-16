@@ -5,6 +5,7 @@
 
 import { inspect } from 'util';
 import type { Logger } from './types';
+import { EmailProvider } from '../email/types';
 
 /**
  * ANSI color codes for terminal output
@@ -39,7 +40,7 @@ const colors = {
  * const pinoLogger = pino({ level: 'debug' });
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: wrapPino(pinoLogger)
  * });
  * ```
@@ -117,7 +118,7 @@ export function wrapPino(pinoLogger: any): Logger {
  * });
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: wrapWinston(winstonLogger)
  * });
  * ```
@@ -176,7 +177,7 @@ export function wrapWinston(winstonLogger: any): Logger {
  * });
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: wrapBunyan(bunyanLogger)
  * });
  * ```
@@ -302,7 +303,7 @@ function colorizeMessage(
  * import { coloredConsoleLogger, EmailService } from 'basepack';
  * 
  * const service = new EmailService({
- *   provider: 'ses',
+ *   provider: EmailProvider.SES,
  *   logger: coloredConsoleLogger()
  * });
  * ```

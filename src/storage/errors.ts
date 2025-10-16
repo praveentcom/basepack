@@ -3,35 +3,27 @@
  * @module storage/errors
  */
 
+import { StorageProvider } from './types';
+
 /**
- * Base error class for storage operations
+ * Error class for storage provider-specific errors.
  * 
- * @example
- * ```typescript
- * try {
- *   await storage.upload(config);
- * } catch (error) {
- *   if (isStorageError(error)) {
- *     console.log(`Storage error: ${error.message}`);
- *     console.log(`Provider: ${error.provider}`);
- *     console.log(`Retryable: ${error.isRetryable}`);
- *   }
- * }
- * ```
+ * Contains structured information about the error including provider name,
+ * HTTP status code, original error, and whether the error is retryable.
  */
 export class StorageError extends Error {
   /**
    * Creates a new StorageError
    * 
    * @param message - Error message
-   * @param provider - Storage provider name
+   * @param provider - Storage provider where the error occurred
    * @param statusCode - HTTP status code if available
    * @param originalError - Original error object
    * @param isRetryable - Whether the operation can be retried
    */
   constructor(
     message: string,
-    public readonly provider: string,
+    public readonly provider: StorageProvider,
     public readonly statusCode?: number,
     public readonly originalError?: unknown,
     public readonly isRetryable: boolean = false
@@ -45,14 +37,16 @@ export class StorageError extends Error {
   }
 
   /**
-   * Create a StorageError from an unknown error
+   * Create a StorageError from an unknown error.
+   * 
+   * Used by storage provider adapters to convert errors to StorageError instances.
    * 
    * @param error - Error to convert
-   * @param provider - Storage provider name
+   * @param provider - Storage provider where the error occurred
    * @param isRetryable - Whether the operation can be retried
    * @returns StorageError instance
    */
-  static from(error: unknown, provider: string, isRetryable: boolean = false): StorageError {
+  static from(error: unknown, provider: StorageProvider, isRetryable: boolean = false): StorageError {
     if (error instanceof StorageError) {
       return error;
     }
@@ -65,21 +59,10 @@ export class StorageError extends Error {
 }
 
 /**
- * Type guard for StorageError
+ * Type guard to check if an error is a StorageError
  * 
  * @param error - Error to check
  * @returns True if error is a StorageError
- * 
- * @example
- * ```typescript
- * try {
- *   await storage.upload(config);
- * } catch (error) {
- *   if (isStorageError(error)) {
- *     console.log(`Provider: ${error.provider}`);
- *   }
- * }
- * ```
  */
 export function isStorageError(error: unknown): error is StorageError {
   return error instanceof StorageError;
@@ -87,13 +70,6 @@ export function isStorageError(error: unknown): error is StorageError {
 
 /**
  * Validation error for storage operations
- * 
- * @example
- * ```typescript
- * if (!config.key) {
- *   throw new StorageValidationError('File key is required', 'key');
- * }
- * ```
  */
 export class StorageValidationError extends Error {
   /**
@@ -116,21 +92,10 @@ export class StorageValidationError extends Error {
 }
 
 /**
- * Type guard for StorageValidationError
+ * Type guard to check if an error is a StorageValidationError
  * 
  * @param error - Error to check
  * @returns True if error is a StorageValidationError
- * 
- * @example
- * ```typescript
- * try {
- *   await storage.upload(config);
- * } catch (error) {
- *   if (isStorageValidationError(error)) {
- *     console.log(`Invalid field: ${error.field}`);
- *   }
- * }
- * ```
  */
 export function isStorageValidationError(error: unknown): error is StorageValidationError {
   return error instanceof StorageValidationError;
@@ -140,14 +105,6 @@ export function isStorageValidationError(error: unknown): error is StorageValida
  * Provider-specific error for storage operations
  * 
  * Thrown when a storage provider is not available or configured incorrectly
- * 
- * @example
- * ```typescript
- * throw new StorageProviderError(
- *   's3',
- *   '@aws-sdk/client-s3 is not installed'
- * );
- * ```
  */
 export class StorageProviderError extends Error {
   /**
@@ -157,7 +114,7 @@ export class StorageProviderError extends Error {
    * @param message - Error message
    */
   constructor(
-    public readonly provider: string,
+    public readonly provider: StorageProvider,
     message: string
   ) {
     super(message);
@@ -170,21 +127,10 @@ export class StorageProviderError extends Error {
 }
 
 /**
- * Type guard for StorageProviderError
+ * Type guard to check if an error is a StorageProviderError
  * 
  * @param error - Error to check
  * @returns True if error is a StorageProviderError
- * 
- * @example
- * ```typescript
- * try {
- *   const storage = new StorageService({ provider: 's3' });
- * } catch (error) {
- *   if (isStorageProviderError(error)) {
- *     console.log(`Provider ${error.provider} error: ${error.message}`);
- *   }
- * }
- * ```
  */
 export function isStorageProviderError(error: unknown): error is StorageProviderError {
   return error instanceof StorageProviderError;

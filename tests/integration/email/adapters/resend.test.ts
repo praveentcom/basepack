@@ -1,10 +1,11 @@
 import { EmailService } from '../../../../src/email/service';
+import { EmailProvider } from '../../../../src/email/types';
 import { getTestEmail } from '../test-utils';
 
 describe('Resend Provider', () => {
   it('should send email via Resend', async () => {
     const service = new EmailService({
-      provider: 'resend',
+      provider: EmailProvider.RESEND,
       config: {
         apiKey: process.env.RESEND_API_KEY,
       },
@@ -15,18 +16,18 @@ describe('Resend Provider', () => {
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(true);
     expect(results[0].messageId).toBeDefined();
-    expect(results[0].provider).toBe('resend');
+    expect(results[0].provider).toBe(EmailProvider.RESEND);
   });
 
   it('should check Resend health', async () => {
     const service = new EmailService({
-      provider: 'resend',
+      provider: EmailProvider.RESEND,
     });
 
     const health = await service.health();
 
     expect(health.ok).toBe(true);
-    expect(health.provider).toBe('resend');
+    expect(health.provider).toBe(EmailProvider.RESEND);
   });
 });
 

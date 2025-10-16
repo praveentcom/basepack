@@ -1,4 +1,4 @@
-import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, PostmarkConfig, EmailSendConfig } from '../types';
+import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, PostmarkConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
 import type { Logger } from '../../logger';
 
@@ -33,7 +33,7 @@ import type { Logger } from '../../logger';
  * @see https://postmarkapp.com/
  */
 export class PostmarkProvider implements IEmailProvider {
-  readonly name = 'postmark';
+  readonly name = EmailProvider.POSTMARK;
   private config: Required<PostmarkConfig>;
   private logger: Logger;
 
@@ -46,12 +46,12 @@ export class PostmarkProvider implements IEmailProvider {
    */
   constructor(config: PostmarkConfig = {}, logger: Logger = console) {
     this.logger = logger;
-    this.logger.debug('Basepack Email: Initializing provider', { provider: 'postmark' });
+    this.logger.debug('Basepack Email: Initializing provider', { provider: this.name });
     
     const serverToken = config.serverToken ?? process.env.POSTMARK_SERVER_TOKEN;
     
     if (!serverToken) {
-      this.logger.error('Basepack Email: Provider token missing', { provider: 'postmark' });
+      this.logger.error('Basepack Email: Provider token missing', { provider: this.name });
       throw new Error('Postmark server token is required. Provide it via config or POSTMARK_SERVER_TOKEN environment variable.');
     }
 
@@ -66,11 +66,11 @@ export class PostmarkProvider implements IEmailProvider {
       ? [config.message] 
       : config.messages || [];
     
-    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'postmark', count: messages.length });
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: this.name, count: messages.length });
     
     // Postmark supports batch sending
     if (messages.length > 1) {
-      this.logger.debug('Basepack Email: Using batch sending', { provider: 'postmark', count: messages.length });
+      this.logger.debug('Basepack Email: Using batch sending', { provider: this.name, count: messages.length });
       return this.sendBatch(messages);
     }
     
@@ -78,10 +78,10 @@ export class PostmarkProvider implements IEmailProvider {
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
-        this.logger.debug('Basepack Email: Provider message sent', { provider: 'postmark', messageId: result.messageId });
+        this.logger.debug('Basepack Email: Provider message sent', { provider: this.name, messageId: result.messageId });
         results.push(result);
       } catch (error) {
-        this.logger.error('Basepack Email: Provider send failed', { provider: 'postmark', to: message.to, error });
+        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

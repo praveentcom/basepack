@@ -19,6 +19,7 @@ import type {
   SignedUrlResult,
   StorageHealthInfo,
 } from './types';
+import { StorageProvider } from './types';
 import type { Logger } from '../logger';
 import { coloredConsoleLogger } from '../logger';
 import { StorageProviderError } from './errors';
@@ -33,7 +34,7 @@ import { S3Provider, GCSProvider } from './adapters';
  * @example AWS S3
  * ```typescript
  * const storage = new StorageService({
- *   provider: 's3',
+ *   provider: StorageProvider.S3,
  *   config: {
  *     bucket: 'my-bucket',
  *     region: 'us-east-1',
@@ -66,7 +67,7 @@ import { S3Provider, GCSProvider } from './adapters';
  * @example S3-compatible service (MinIO, DigitalOcean Spaces)
  * ```typescript
  * const storage = new StorageService({
- *   provider: 's3',
+ *   provider: StorageProvider.S3,
  *   config: {
  *     bucket: 'my-bucket',
  *     region: 'us-east-1',
@@ -100,7 +101,7 @@ export class StorageService {
    * @example
    * ```typescript
    * const storage = new StorageService({
-   *   provider: 's3',
+   *   provider: StorageProvider.S3,
    *   config: {
    *     bucket: 'my-bucket',
    *     region: 'us-east-1'
@@ -396,7 +397,7 @@ export class StorageService {
    * @example
    * ```typescript
    * const providerName = storage.getProviderName();
-   * console.log(`Using provider: ${providerName}`); // "s3"
+   * console.log(`Using provider: ${providerName}`);
    * ```
    */
   getProviderName(): string {
@@ -412,15 +413,14 @@ export class StorageService {
    */
   private createProvider(config: StorageServiceConfig): IStorageProvider {
     switch (config.provider) {
-      case 's3':
+      case StorageProvider.S3:
         return new S3Provider((config.config || {}) as S3Config, this.logger);
       
-      case 'gcs':
+      case StorageProvider.GCS:
         return new GCSProvider((config.config || {}) as GCSConfig, this.logger);
       
       default:
-        throw new StorageProviderError(
-          config.provider,
+        throw new Error(
           `Unsupported storage provider: ${config.provider}`
         );
     }
