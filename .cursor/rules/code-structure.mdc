@@ -1,0 +1,140 @@
+---
+alwaysApply: true
+---
+# Basepack Code Structure
+
+## Project Organization
+
+Basepack is a modular service utilities library. Each service is self-contained in its own directory under `src/`.
+
+### Directory Structure
+
+```
+src/
+├── index.ts                    # Main entry point - re-exports all services
+└── email/                      # Email service module
+    ├── index.ts                # Email module exports
+    ├── types.ts                # Type definitions and interfaces
+    ├── service.ts              # EmailService class
+    ├── errors.ts               # Error classes (EmailError, EmailValidationError, etc.)
+    ├── validation.ts           # Validation utilities
+    ├── retry.ts                # Retry logic with exponential backoff
+    └── adapters/               # Provider implementations
+        ├── index.ts            # Adapter exports
+        ├── ses.ts              # AWS SES adapter
+        ├── sendgrid.ts         # SendGrid adapter
+        ├── mailgun.ts          # Mailgun adapter
+        ├── resend.ts           # Resend adapter
+        ├── postmark.ts         # Postmark adapter
+        └── smtp.ts             # SMTP adapter
+```
+
+### File Responsibilities
+
+**Service Module Pattern** (applies to all services):
+
+1. **`types.ts`** - Type definitions
+   - All interfaces and types for the service
+   - Configuration types for each provider
+   - Type guards and utility types
+   - Const assertions for enums
+
+2. **`service.ts`** - Main service class
+   - Public API for the service
+   - Multi-provider orchestration
+   - Failover logic
+   - Provider factory method
+
+3. **`errors.ts`** - Error handling
+   - Service-specific error classes
+   - Type guards for errors
+   - Structured error information
+
+4. **`validation.ts`** - Input validation
+   - Validation functions
+   - Validation rules
+   - Error throwing on invalid input
+
+5. **`retry.ts`** - Retry logic (if needed)
+   - Exponential backoff implementation
+   - Retryable error detection
+   - Configurable retry options
+
+6. **`adapters/`** - Provider implementations
+   - Each provider in its own file
+   - Implements `IProvider` interface
+   - Uses dynamic imports for optional dependencies
+   - Provider-specific error handling
+
+### Adding New Services
+
+When adding a new service (e.g., cache, storage):
+
+```
+src/
+└── cache/                      # New service
+    ├── index.ts                # Export service and types
+    ├── types.ts                # ICacheProvider, CacheConfig, etc.
+    ├── service.ts              # CacheService class
+    ├── errors.ts               # CacheError, etc.
+    └── adapters/
+        ├── redis.ts            # Redis adapter
+        ├── memcached.ts        # Memcached adapter
+        └── memory.ts           # In-memory adapter
+```
+
+Then export from main [index.ts](mdc:src/index.ts):
+```typescript
+export * from './cache';
+```
+
+### Testing Structure
+
+```
+tests/
+├── unit/                       # Unit tests (run in CI)
+│   └── email/
+│       ├── validation.test.ts
+│       ├── errors.test.ts
+│       ├── retry.test.ts
+│       └── types.test.ts
+└── integration/                # Integration tests (run locally)
+    └── email/
+        └── adapters/
+            ├── ses.test.ts
+            ├── sendgrid.test.ts
+            └── ...
+```
+
+### Documentation Structure
+
+```
+docs/
+└── email/
+    └── README.md               # Complete email service documentation
+```
+
+Main [README.md](mdc:README.md) stays minimal and links to service-specific docs.
+
+### Build Output
+
+```
+dist/
+├── index.js                    # ESM bundle
+├── index.js.map                # ESM source map
+├── index.cjs                   # CommonJS bundle
+├── index.cjs.map               # CJS source map
+├── index.d.ts                  # TypeScript definitions (ESM)
+└── index.d.cts                 # TypeScript definitions (CJS)
+```
+
+## Key Principles
+
+1. **Service Independence** - Each service is self-contained
+2. **Adapter Pattern** - All providers implement a common interface
+3. **Optional Dependencies** - Heavy dependencies are peer dependencies with dynamic imports
+4. **Type Safety** - Discriminated unions for provider-specific configs
+5. **Failover First** - Multi-provider support is a core feature
+6. **Validation** - All inputs validated before processing
+7. **Error Handling** - Structured errors with type guards
+8. **Documentation** - JSDoc on all public APIs

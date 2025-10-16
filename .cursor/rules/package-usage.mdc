@@ -1,0 +1,244 @@
+---
+description: How users consume and use the Basepack package
+---
+# Package Usage Patterns
+
+## How Users Install and Import
+
+### Installation
+
+Users install basepack and optional dependencies:
+
+```bash
+# Core package
+npm install basepack
+
+# Optional: Provider-specific dependencies
+npm install @aws-sdk/client-ses    # For AWS SES
+npm install nodemailer             # For SMTP
+```
+
+### Importing
+
+Users import from the main package:
+
+```typescript
+// Import service classes
+import { EmailService } from 'basepack';
+
+// Import types
+import type { EmailMessage, EmailSendResult } from 'basepack';
+
+// Import error classes
+import { EmailValidationError, EmailProviderError } from 'basepack';
+
+// Import utilities
+import { isValidEmail, validateEmailMessage } from 'basepack';
+```
+
+## Common Usage Patterns
+
+### Pattern 1: Single Provider (Simple)
+
+```typescript
+import { EmailService } from 'basepack';
+
+const emailService = new EmailService({
+  provider: 'sendgrid',
+  config: { apiKey: process.env.SENDGRID_API_KEY }
+});
+
+await emailService.send({
+  message: {
+    from: 'app@example.com',
+    to: 'user@example.com',
+    subject: 'Welcome',
+    html: '<p>Welcome to our app!</p>'
+  }
+});
+```
+
+### Pattern 2: Multi-Provider with Failover (Production)
+
+```typescript
+const emailService = new EmailService({
+  primary: { provider: 'ses' },
+  backups: [
+    { provider: 'sendgrid', config: { apiKey: process.env.SENDGRID_API_KEY } },
+    { provider: 'smtp', config: { host: 'smtp.gmail.com', port: 587 } }
+  ]
+});
+```
+
+### Pattern 3: With Error Handling
+
+```typescript
+import { EmailService, EmailValidationError, EmailProviderError } from 'basepack';
+
+try {
+  const results = await emailService.send({ message });
+  console.log('Sent:', results[0].messageId);
+} catch (error) {
+  if (error instanceof EmailValidationError) {
+    // Handle validation errors
+    console.error(`Invalid ${error.field}:`, error.message);
+  } else if (error instanceof EmailProviderError) {
+    // Handle provider failures
+    console.error('All providers failed:', error.errors);
+  }
+}
+```
+
+### Pattern 4: Batch Sending
+
+```typescript
+await emailService.send({
+  messages: users.map(user => ({
+    from: 'app@example.com',
+    to: user.email,
+    subject: `Hi ${user.name}`,
+    html: `<p>Hello ${user.name}!</p>`
+  }))
+});
+```
+
+### Pattern 5: With Custom Retry Configuration
+
+```typescript
+await emailService.send({
+  message: criticalEmail,
+  opts: {
+    retries: 5,
+    retryMinTimeout: 2000,
+    retryMaxTimeout: 60000,
+    validateBeforeSend: true
+  }
+});
+```
+
+## Environment Variable Configuration
+
+Users typically configure providers using environment variables:
+
+```bash
+# .env file
+SENDGRID_API_KEY=SG.xxx
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=xxx
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=user@gmail.com
+SMTP_PASS=app-password
+```
+
+Then initialize without config objects:
+
+```typescript
+const emailService = new EmailService({ provider: 'sendgrid' });
+// Reads from SENDGRID_API_KEY automatically
+```
+
+## TypeScript Autocomplete Experience
+
+### Provider-Specific Config
+
+When users type `provider: 'mailgun'`, TypeScript autocompletes available config fields:
+
+```typescript
+const service = new EmailService({
+  provider: 'mailgun',
+  config: {
+    // Autocomplete shows: apiKey, domain, region, endpoint
+    apiKey: '...',
+    domain: '...',
+    region: 'us' // Autocomplete: 'us' | 'eu'
+  }
+});
+```
+
+### Message vs Messages
+
+TypeScript prevents users from mixing single and batch modes:
+
+```typescript
+// OK
+await service.send({ message: {...} });
+
+// OK
+await service.send({ messages: [{...}] });
+
+// TypeScript Error
+await service.send({ message: {...}, messages: [{...}] });
+```
+
+## Common User Workflows
+
+### Workflow 1: Simple Transactional Emails
+
+```typescript
+// app/services/email.ts
+import { EmailService } from 'basepack';
+
+export const emailService = new EmailService({
+  provider: 'sendgrid'
+});
+
+// app/controllers/user.ts
+import { emailService } from '../services/email';
+
+async function sendWelcomeEmail(user: User) {
+  await emailService.send({
+    message: {
+      from: 'noreply@app.com',
+      to: user.email,
+      subject: 'Welcome!',
+      html: renderWelcomeTemplate(user)
+    }
+  });
+}
+```
+
+### Workflow 2: High Availability Setup
+
+```typescript
+// config/email.ts
+import { EmailService } from 'basepack';
+
+export const emailService = new EmailService({
+  primary: { provider: 'ses' },
+  backups: [{ provider: 'sendgrid' }]
+});
+
+// If SES fails, automatically falls back to SendGrid
+```
+
+### Workflow 3: Health Monitoring
+
+```typescript
+// monitoring/health.ts
+import { emailService } from '../config/email';
+
+export async function checkEmailHealth() {
+  const health = await emailService.health();
+  return {
+    status: health.ok ? 'healthy' : 'degraded',
+    provider: health.provider,
+    details: health
+  };
+}
+```
+
+## What Users DON'T Do
+
+Users don't:
+- Import from sub-paths (`basepack/email/service` ❌)
+- Instantiate providers directly (`new SESProvider()` ❌)
+- Access internal utilities directly
+- Import from `dist/` folder
+
+Users always:
+- Import from main package (`basepack` ✅)
+- Use service classes (`EmailService` ✅)
+- Handle errors properly
+- Use TypeScript for best experience
