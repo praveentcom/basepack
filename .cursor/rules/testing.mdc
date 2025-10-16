@@ -1,6 +1,8 @@
 # Testing Standards
 
-## KISS Principle: Keep It Simple, Stupid
+- KISS Principle: Keep It Simple, Stupid
+
+## Integration Test Standards
 
 **Integration tests should be simple and straightforward.**
 
@@ -37,7 +39,7 @@ it('should upload a file with metadata and cache control and encoding', async ()
 });
 ```
 
-### Test Through Service Layer
+### Test Through Service Layer Only
 
 **Always test through the service layer, not directly with providers.**
 
@@ -141,48 +143,10 @@ export const getTestEmail = (): EmailMessage => ({
 });
 ```
 
-### Test Coverage
+### Environment Variables
 
-Integration tests should cover:
-
-1. **Core operations** - Upload, download, main features
-2. **Health checks** - Provider connectivity
-
-**Keep tests simple and reuse test data:**
-
-```typescript
-describe('S3 Provider', () => {
-  let service: StorageService;
-  let uploadedKey: string;
-
-  beforeAll(async () => {
-    service = new StorageService({
-      provider: StorageProvider.S3,
-      config: { /* ... */ }
-    });
-    
-    // Upload once, reuse in download/signed URL tests
-    uploadedKey = generateTestKey('test');
-    await service.upload({
-      key: uploadedKey,
-      data: buffer,
-      contentType: 'text/plain',
-    });
-  });
-
-  it('should upload a file to S3', async () => { /* ... */ });
-  
-  it('should download a file from S3', async () => {
-    // Reuses uploadedKey from beforeAll
-    const result = await service.download({ key: uploadedKey });
-    expect(result.success).toBe(true);
-  });
-  
-  it('should generate a signed URL', async () => { /* ... */ });
-  
-  it('should check S3 health', async () => { /* ... */ });
-});
-```
+- Integration tests use `tests/integration/test.env` for credentials which is gitignored.
+- Always use the `test.env.example` to update the relevant environment variables needed for the integration tests.
 
 ## Unit Test Standards
 
@@ -203,28 +167,6 @@ Unit tests for services should mock providers and focus on:
 - Failover logic
 - Service-level error handling
 - Configuration validation
-
-## Environment Variables
-
-Integration tests use `tests/integration/test.env` for credentials.
-
-**Never commit credentials!** The `.env` file is gitignored.
-
-Provide a `test.env.example` showing required variables:
-
-```bash
-# tests/integration/test.env.example
-
-# AWS
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-AWS_S3_BUCKET=your-bucket
-
-# Email Testing
-TEST_FROM_EMAIL=test@example.com
-TEST_TO_EMAIL=recipient@example.com
-```
 
 ## Running Tests
 

@@ -122,7 +122,7 @@ Main [README.md](mdc:README.md) stays minimal and links to service-specific docs
 
 1. **Logging** - Main README has complete logging documentation
    - Service-specific docs: ❌ No logging sections
-   - Users refer to main README for logging examples
+   - Users refer to main README to understand how to configure logging
 
 2. **Error Handling** - If error patterns are similar across services
    - Main README: ✅ General error handling patterns
@@ -141,7 +141,6 @@ Main [README.md](mdc:README.md) stays minimal and links to service-specific docs
 - Service-specific features and capabilities
 - API reference for that service
 - Examples unique to that service
-- Links to main README for common patterns
 
 **Example:**
 ```markdown
@@ -183,7 +182,6 @@ dist/
 2. **Adapter Pattern** - All providers implement a common interface
 3. **Optional Dependencies** - Heavy dependencies are peer dependencies with dynamic imports
 4. **Type Safety** - Discriminated unions for provider-specific configs
-5. **Failover First** - Multi-provider support is a core feature
-6. **Validation** - All inputs validated before processing
-7. **Error Handling** - Structured errors with type guards
-8. **Documentation** - JSDoc on all public APIs
+5. **Validation** - All inputs validated before processing
+6. **Error Handling** - Structured errors with type guards
+7. **Documentation** - JSDoc on all public APIs

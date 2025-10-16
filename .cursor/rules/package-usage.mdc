@@ -89,33 +89,6 @@ try {
 }
 ```
 
-### Pattern 4: Batch Sending
-
-```typescript
-await emailService.send({
-  messages: users.map(user => ({
-    from: 'app@example.com',
-    to: user.email,
-    subject: `Hi ${user.name}`,
-    html: `<p>Hello ${user.name}!</p>`
-  }))
-});
-```
-
-### Pattern 5: With Custom Retry Configuration
-
-```typescript
-await emailService.send({
-  message: criticalEmail,
-  opts: {
-    retries: 5,
-    retryMinTimeout: 2000,
-    retryMaxTimeout: 60000,
-    validateBeforeSend: true
-  }
-});
-```
-
 ## Environment Variable Configuration
 
 Users typically configure providers using environment variables:
@@ -139,41 +112,6 @@ import { EmailService, EmailProvider } from 'basepack';
 
 const emailService = new EmailService({ provider: EmailProvider.SENDGRID });
 // Reads from SENDGRID_API_KEY automatically
-```
-
-## TypeScript Autocomplete Experience
-
-### Provider-Specific Config
-
-When users type `provider: EmailProvider.MAILGUN`, TypeScript autocompletes available config fields:
-
-```typescript
-import { EmailService, EmailProvider } from 'basepack';
-
-const service = new EmailService({
-  provider: EmailProvider.MAILGUN,
-  config: {
-    // Autocomplete shows: apiKey, domain, region, endpoint
-    apiKey: '...',
-    domain: '...',
-    region: 'us' // Autocomplete: 'us' | 'eu'
-  }
-});
-```
-
-### Message vs Messages
-
-TypeScript prevents users from mixing single and batch modes:
-
-```typescript
-// OK
-await service.send({ message: {...} });
-
-// OK
-await service.send({ messages: [{...}] });
-
-// TypeScript Error
-await service.send({ message: {...}, messages: [{...}] });
 ```
 
 ## Common User Workflows
