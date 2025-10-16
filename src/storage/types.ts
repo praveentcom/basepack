@@ -21,7 +21,10 @@ import type { Logger } from '../logger/types';
 export enum StorageProvider {
   S3 = 's3',
   GCS = 'gcs',
-  AZURE = 'azure'
+  AZURE = 'azure',
+  R2 = 'r2',
+  B2 = 'b2',
+  OSS = 'oss'
 }
 
 /**
@@ -145,12 +148,124 @@ export interface AzureConfig {
 }
 
 /**
+ * Cloudflare R2 storage configuration
+ * 
+ * R2 is S3-compatible, so it uses the same configuration structure as S3.
+ * 
+ * @example
+ * ```typescript
+ * const config: R2Config = {
+ *   bucket: 'my-bucket',
+ *   accountId: 'your-account-id',
+ *   credentials: {
+ *     accessKeyId: 'your-access-key-id',
+ *     secretAccessKey: 'your-secret-access-key'
+ *   }
+ * };
+ * ```
+ */
+export interface R2Config {
+  /** R2 bucket name */
+  bucket: string;
+  /** Cloudflare account ID */
+  accountId: string;
+  /** R2 credentials */
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+  /** Custom endpoint URL (if using custom domain) */
+  endpoint?: string;
+}
+
+/**
+ * Backblaze B2 storage configuration
+ * 
+ * B2 is S3-compatible and can use the S3 API.
+ * 
+ * @example Using S3-compatible API
+ * ```typescript
+ * const config: B2Config = {
+ *   bucket: 'my-bucket',
+ *   credentials: {
+ *     accessKeyId: 'your-key-id',
+ *     secretAccessKey: 'your-application-key'
+ *   },
+ *   region: 'us-west-004'
+ * };
+ * ```
+ */
+export interface B2Config {
+  /** B2 bucket name */
+  bucket: string;
+  /** B2 credentials (keyId and applicationKey) */
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+  /** B2 region (e.g., 'us-west-004') */
+  region?: string;
+  /** Custom endpoint URL (defaults to B2 S3-compatible endpoint) */
+  endpoint?: string;
+}
+
+/**
+ * Alibaba Cloud OSS configuration
+ * 
+ * @example Using access credentials
+ * ```typescript
+ * const config: OSSConfig = {
+ *   bucket: 'my-bucket',
+ *   region: 'oss-us-west-1',
+ *   credentials: {
+ *     accessKeyId: 'your-access-key-id',
+ *     accessKeySecret: 'your-access-key-secret'
+ *   }
+ * };
+ * ```
+ * 
+ * @example Using STS token
+ * ```typescript
+ * const config: OSSConfig = {
+ *   bucket: 'my-bucket',
+ *   region: 'oss-us-west-1',
+ *   credentials: {
+ *     accessKeyId: 'your-access-key-id',
+ *     accessKeySecret: 'your-access-key-secret',
+ *     stsToken: 'your-sts-token'
+ *   }
+ * };
+ * ```
+ */
+export interface OSSConfig {
+  /** OSS bucket name */
+  bucket: string;
+  /** OSS region (e.g., 'oss-us-west-1') */
+  region: string;
+  /** OSS credentials */
+  credentials: {
+    accessKeyId: string;
+    accessKeySecret: string;
+    stsToken?: string;
+  };
+  /** Internal network access (default: false) */
+  internal?: boolean;
+  /** Use HTTPS (default: true) */
+  secure?: boolean;
+  /** Custom endpoint */
+  endpoint?: string;
+}
+
+/**
  * Base storage provider configuration
  */
 export type StorageProviderConfig = 
   | { provider: StorageProvider.S3; config?: S3Config }
   | { provider: StorageProvider.GCS; config?: GCSConfig }
   | { provider: StorageProvider.AZURE; config?: AzureConfig }
+  | { provider: StorageProvider.R2; config?: R2Config }
+  | { provider: StorageProvider.B2; config?: B2Config }
+  | { provider: StorageProvider.OSS; config?: OSSConfig }
   | { provider: StorageProvider; config?: Record<string, unknown> };
 
 /**
@@ -192,7 +307,7 @@ export type StorageProviderConfig =
  */
 export type StorageServiceConfig = {
   provider: StorageProvider;
-  config?: S3Config | GCSConfig | AzureConfig | Record<string, unknown>;
+  config?: S3Config | GCSConfig | AzureConfig | R2Config | B2Config | OSSConfig | Record<string, unknown>;
   logger?: Logger;
 }
 

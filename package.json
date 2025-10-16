@@ -24,7 +24,10 @@
     "gcs",
     "google-cloud-storage",
     "azure",
-    "azure-blob-storage"
+    "azure-blob-storage",
+    "cloudflare-r2",
+    "backblaze-b2",
+    "alibaba-cloud-oss"
   ],
   "license": "MIT",
   "author": "Praveen Thirumurugan",
@@ -88,6 +91,7 @@
     "@aws-sdk/s3-request-presigner": "^3.0.0",
     "@azure/storage-blob": "^12.28.0",
     "@google-cloud/storage": "^7.17.2",
+    "ali-oss": "^6.20.0",
     "ioredis": "^5.8.1",
     "memcached": "^2.2.0",
     "nodemailer": "^7.0.9"
@@ -106,6 +110,9 @@
       "optional": true
     },
     "@google-cloud/storage": {
+      "optional": true
+    },
+    "ali-oss": {
       "optional": true
     },
     "ioredis": {

@@ -4,6 +4,9 @@ The Storage service provides a unified interface for file storage operations acr
 - **AWS S3** and S3-compatible services (MinIO, DigitalOcean Spaces, etc.)
 - **Google Cloud Storage (GCS)**
 - **Azure Blob Storage**
+- **Cloudflare R2**
+- **Backblaze B2**
+- **Alibaba Cloud OSS**
 
 ## Features
 
@@ -40,6 +43,24 @@ For Azure Blob Storage support, install the Azure SDK:
 
 ```bash
 npm install @azure/storage-blob
+```
+
+For Cloudflare R2 support, install the AWS SDK (R2 is S3-compatible):
+
+```bash
+npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+```
+
+For Backblaze B2 support, install the AWS SDK (B2 supports S3-compatible API):
+
+```bash
+npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+```
+
+For Alibaba Cloud OSS support, install the OSS SDK:
+
+```bash
+npm install ali-oss
 ```
 
 ## Quick Start
@@ -265,6 +286,183 @@ const storage = new StorageService({
   }
 });
 ```
+
+### Cloudflare R2
+
+Cloudflare R2 is S3-compatible and provides zero-egress storage.
+
+#### Basic Configuration
+
+```typescript
+import { StorageService, StorageProvider } from 'basepack';
+
+const storage = new StorageService({
+  provider: StorageProvider.R2,
+  config: {
+    bucket: 'my-bucket',
+    accountId: 'your-account-id', // Found in Cloudflare dashboard
+    credentials: {
+      accessKeyId: 'your-r2-access-key-id',
+      secretAccessKey: 'your-r2-secret-access-key'
+    }
+  }
+});
+```
+
+#### With Custom Domain
+
+If you've configured a custom domain for your R2 bucket:
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.R2,
+  config: {
+    bucket: 'my-bucket',
+    accountId: 'your-account-id',
+    credentials: {
+      accessKeyId: 'your-r2-access-key-id',
+      secretAccessKey: 'your-r2-secret-access-key'
+    },
+    endpoint: 'https://my-custom-domain.com'
+  }
+});
+```
+
+#### Getting Started with R2
+
+1. Create an R2 bucket in the Cloudflare dashboard
+2. Generate API tokens from R2 settings
+3. Use your account ID from the dashboard URL
+
+### Backblaze B2
+
+Backblaze B2 provides affordable S3-compatible storage.
+
+#### Basic Configuration
+
+```typescript
+import { StorageService, StorageProvider } from 'basepack';
+
+const storage = new StorageService({
+  provider: StorageProvider.B2,
+  config: {
+    bucket: 'my-bucket',
+    credentials: {
+      accessKeyId: 'your-b2-key-id',
+      secretAccessKey: 'your-b2-application-key'
+    },
+    region: 'us-west-004' // Your B2 bucket region
+  }
+});
+```
+
+#### Custom Endpoint
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.B2,
+  config: {
+    bucket: 'my-bucket',
+    credentials: {
+      accessKeyId: 'your-b2-key-id',
+      secretAccessKey: 'your-b2-application-key'
+    },
+    endpoint: 'https://s3.us-west-004.backblazeb2.com'
+  }
+});
+```
+
+#### Getting Started with B2
+
+1. Create a B2 bucket in your Backblaze account
+2. Create an application key with appropriate permissions
+3. Note your bucket's region (e.g., 'us-west-004')
+4. Use the S3-compatible API endpoint
+
+### Alibaba Cloud OSS
+
+Alibaba Cloud Object Storage Service provides scalable storage with global presence.
+
+#### Basic Configuration
+
+```typescript
+import { StorageService, StorageProvider } from 'basepack';
+
+const storage = new StorageService({
+  provider: StorageProvider.OSS,
+  config: {
+    bucket: 'my-bucket',
+    region: 'oss-us-west-1', // Your OSS region
+    credentials: {
+      accessKeyId: 'your-oss-access-key-id',
+      accessKeySecret: 'your-oss-access-key-secret'
+    }
+  }
+});
+```
+
+#### With STS Token
+
+For temporary credentials using Security Token Service:
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.OSS,
+  config: {
+    bucket: 'my-bucket',
+    region: 'oss-us-west-1',
+    credentials: {
+      accessKeyId: 'your-oss-access-key-id',
+      accessKeySecret: 'your-oss-access-key-secret',
+      stsToken: 'your-sts-token'
+    }
+  }
+});
+```
+
+#### Internal Network Access
+
+For applications running within Alibaba Cloud (ECS, etc.):
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.OSS,
+  config: {
+    bucket: 'my-bucket',
+    region: 'oss-cn-hangzhou',
+    credentials: {
+      accessKeyId: 'your-oss-access-key-id',
+      accessKeySecret: 'your-oss-access-key-secret'
+    },
+    internal: true // Use internal network endpoint
+  }
+});
+```
+
+#### Custom Endpoint
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.OSS,
+  config: {
+    bucket: 'my-bucket',
+    region: 'oss-us-west-1',
+    credentials: {
+      accessKeyId: 'your-oss-access-key-id',
+      accessKeySecret: 'your-oss-access-key-secret'
+    },
+    endpoint: 'my-custom-endpoint.com',
+    secure: true // Use HTTPS (default)
+  }
+});
+```
+
+#### Getting Started with OSS
+
+1. Create an OSS bucket in Alibaba Cloud console
+2. Create an AccessKey pair (AccessKey ID and AccessKey Secret)
+3. Note your bucket's region (e.g., 'oss-us-west-1', 'oss-cn-hangzhou')
+4. For production, consider using RAM roles or STS tokens
 
 ## Usage Examples
 
