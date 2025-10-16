@@ -7,6 +7,7 @@ import type {
   FileUploadConfig,
   UrlUploadConfig,
   FileDownloadConfig,
+  FileDeleteConfig,
   SignedUrlConfig,
 } from './types';
 import { StorageValidationError } from './errors';
@@ -168,6 +169,27 @@ export function validateUrlUpload(config: UrlUploadConfig): void {
 export function validateFileDownload(config: FileDownloadConfig): void {
   if (!config) {
     throw new StorageValidationError('Download configuration is required', 'config');
+  }
+
+  validateKey(config.key);
+}
+
+/**
+ * Validates file delete configuration
+ * 
+ * @param config - Delete configuration to validate
+ * @throws {StorageValidationError} If configuration is invalid
+ * 
+ * @example
+ * ```typescript
+ * validateFileDelete({
+ *   key: 'documents/report.pdf'
+ * });
+ * ```
+ */
+export function validateFileDelete(config: FileDeleteConfig): void {
+  if (!config) {
+    throw new StorageValidationError('Delete configuration is required', 'config');
   }
 
   validateKey(config.key);

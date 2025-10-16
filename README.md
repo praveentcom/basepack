@@ -1,6 +1,6 @@
 # Basepack
 
-An opinionated library of ready-to-use service utilities for backend applications. Comprises of commonly used services like email, cache, logging, etc.
+An opinionated library of ready-to-use service utilities for backend applications. Comprises of commonly used services like email, cache, storage, logging, etc.
 
 [![npm version](https://badge.fury.io/js/basepack.svg)](https://www.npmjs.com/package/basepack)
 [![CI](https://github.com/praveentcom/basepack/actions/workflows/ci.yml/badge.svg)](https://github.com/praveentcom/basepack/actions/workflows/ci.yml)
@@ -9,7 +9,7 @@ An opinionated library of ready-to-use service utilities for backend application
 
 ## About
 
-Basepack provides production-ready service utilities for Node.js backend applications. Built with TypeScript, it offers multi-provider support with automatic failover, making your backend services more resilient and flexible. It includes commonly used services like email, storage, and more.
+Basepack provides production-ready service utilities for Node.js backend applications. Built with TypeScript, it offers multi-provider support with automatic failover, making your backend services more resilient and flexible. It includes commonly used services like email, cache, storage, and more.
 
 **Key Features:**
 - Built-in validation
@@ -61,9 +61,48 @@ await service.send({
 
 **[Complete Email Documentation](./docs/email/README.md)** - Setup guides, configuration, examples, and API reference
 
+### Cache
+
+Multi-provider caching service for high-performance data caching with Redis and Memcached support.
+
+**Quick Example:**
+```typescript
+import { CacheService, CacheProvider } from 'basepack';
+
+const cache = new CacheService({
+  provider: CacheProvider.REDIS,
+  config: {
+    host: 'localhost',
+    port: 6379
+  }
+});
+
+// Set a value with TTL
+await cache.set({
+  key: 'user:123',
+  value: { name: 'John', email: 'john@example.com' },
+  ttl: 3600
+});
+
+// Get a value
+const result = await cache.get({ key: 'user:123' });
+if (result.found) {
+  console.log('User:', result.value);
+}
+```
+
+#### Supported Providers
+
+| Provider | Package Required |
+|----------|------------------|
+| Redis | `ioredis` |
+| Memcached | `memcached` |
+
+**[Complete Cache Documentation](./docs/cache/README.md)** - Setup guides, configuration, examples, and API reference
+
 ### Storage
 
-Multi-provider storage service for file operations with support for S3 and S3-compatible services.
+Multi-provider storage service for file operations with support for AWS S3, Google Cloud Storage, and S3-compatible services.
 
 **Quick Example:**
 ```typescript
@@ -96,18 +135,18 @@ const result = await storage.getSignedUrl({
 | Provider | Package Required |
 |----------|------------------|
 | AWS S3 | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` |
+| Google Cloud Storage | `@google-cloud/storage` |
 
 **[Complete Storage Documentation](./docs/storage/README.md)** - Setup guides, configuration, examples, and API reference
 
 ## Logging
 
-All services log to `console` by default. You can customize logging by injecting your own logger or disable it entirely with `noopLogger`.
+All services log with colored output by default. You can customize logging by injecting your own logger or disable it entirely with `noopLogger`.
 
 **Default Behavior (logs to console):**
 ```typescript
 import { EmailService } from 'basepack';
 
-// Logs to console by default
 const service = new EmailService({
   provider: 'sendgrid',
   config: { apiKey: process.env.SENDGRID_API_KEY }
@@ -140,7 +179,7 @@ const service = new EmailService({
 });
 ```
 
-**Supported logger wrappers:**
+**Custom loggers:**
 - `wrapPino(pinoLogger)` - Pino logger
 - `wrapWinston(winstonLogger)` - Winston logger
 - `wrapBunyan(bunyanLogger)` - Bunyan logger

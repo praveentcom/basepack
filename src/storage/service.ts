@@ -7,18 +7,22 @@ import type {
   IStorageProvider,
   StorageServiceConfig,
   S3Config,
+  GCSConfig,
   FileUploadConfig,
   UrlUploadConfig,
   FileDownloadConfig,
+  FileDeleteConfig,
   SignedUrlConfig,
   FileUploadResult,
   FileDownloadResult,
+  FileDeleteResult,
   SignedUrlResult,
   StorageHealthInfo,
 } from './types';
 import type { Logger } from '../logger';
+import { coloredConsoleLogger } from '../logger';
 import { StorageProviderError } from './errors';
-import { S3Provider } from './adapters';
+import { S3Provider, GCSProvider } from './adapters';
 
 /**
  * Storage service for file operations
@@ -105,7 +109,7 @@ export class StorageService {
    * ```
    */
   constructor(config: StorageServiceConfig) {
-    this.logger = config.logger || console;
+    this.logger = config.logger || coloredConsoleLogger();
     this.logger.debug('Basepack Storage: Initializing service', { provider: config.provider });
     this.provider = this.createProvider(config);
   }
@@ -245,6 +249,45 @@ export class StorageService {
   }
 
   /**
+   * Delete a file from storage
+   * 
+   * Removes a file from the storage provider.
+   * 
+   * @param config - Delete configuration
+   * @returns Delete result
+   * @throws {StorageValidationError} If configuration is invalid
+   * 
+   * @example
+   * ```typescript
+   * const result = await storage.delete({
+   *   key: 'documents/old-report.pdf'
+   * });
+   * 
+   * if (result.success) {
+   *   console.log('File deleted successfully');
+   * }
+   * ```
+   */
+  async delete(config: FileDeleteConfig): Promise<FileDeleteResult> {
+    this.logger.info('Basepack Storage: Deleting file', { key: config.key });
+    try {
+      const result = await this.provider.delete(config);
+      if (result.success) {
+        this.logger.info('Basepack Storage: File deleted successfully', { 
+          key: config.key, 
+          provider: result.provider
+        });
+      } else {
+        this.logger.error('Basepack Storage: Delete failed', { key: config.key, error: result.error });
+      }
+      return result;
+    } catch (error) {
+      this.logger.error('Basepack Storage: Delete exception', { key: config.key, error });
+      throw error;
+    }
+  }
+
+  /**
    * Generate a signed URL for file access
    * 
    * Creates a pre-signed URL that allows temporary access to a file without
@@ -371,6 +414,9 @@ export class StorageService {
     switch (config.provider) {
       case 's3':
         return new S3Provider((config.config || {}) as S3Config, this.logger);
+      
+      case 'gcs':
+        return new GCSProvider((config.config || {}) as GCSConfig, this.logger);
       
       default:
         throw new StorageProviderError(

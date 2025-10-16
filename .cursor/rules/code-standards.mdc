@@ -1,247 +1,68 @@
 ---
 alwaysApply: true
 ---
-# Code Standards and Documentation
+# Code Standards
 
-## TypeScript Conventions
+## TypeScript Rules
 
-### Strict Mode
-
-This project uses TypeScript strict mode. See [tsconfig.json](mdc:tsconfig.json):
-
-```typescript
-{
-  "strict": true,
-  "forceConsistentCasingInFileNames": true
-}
-```
-
-All code must:
-- Pass strict type checking
-- Handle nullable values explicitly
-- Avoid `any` type (use `unknown` and type guards instead)
-
-### Type vs Interface
-
-**Use `interface` for:**
-- Object shapes that can be extended
-- Public API contracts (e.g., `IEmailProvider`)
-- Configuration objects (e.g., `SESConfig`)
-
-**Use `type` for:**
-- Unions (e.g., `EmailProviderType`)
-- Discriminated unions (e.g., `EmailSendConfig`)
-- Mapped types and utility types
-- Primitive aliases
-
-### Const Assertions
-
-Use const assertions for enums and constant arrays:
-
-```typescript
-// Good
-export const EMAIL_PROVIDERS = ['ses', 'sendgrid', 'mailgun'] as const;
-export type EmailProviderType = typeof EMAIL_PROVIDERS[number];
-
-// Bad
-export type EmailProviderType = 'ses' | 'sendgrid' | 'mailgun';
-```
-
-### Enums
-
-Use enums for sets of named constants, especially for values exposed in public APIs:
-
-```typescript
-// Good - provides autocomplete and type safety
-export enum EmailProvider {
-  SES = 'ses',
-  SENDGRID = 'sendgrid',
-  MAILGUN = 'mailgun',
-  RESEND = 'resend',
-  POSTMARK = 'postmark',
-  SMTP = 'smtp'
-}
-
-// Usage
-const service = new EmailService({
-  provider: EmailProvider.SENDGRID,
-  config: { apiKey: 'key' }
-});
-```
-
-**When to use enums:**
-- Public API values that users will reference frequently
-- Provider names, service types, operation types
-- Values that benefit from IDE autocomplete
-
-**When to use const assertions:**
-- Internal constant arrays
-- Values primarily used within the library
-- When you need both the array and the type
-
-### Type Guards
-
-Always create type guards for runtime type checking:
+- Use strict mode (no `any`, handle nulls explicitly)
+- Use `interface` for objects and public APIs
+- Use `type` for unions and combinations
+- Always create type guards for custom types:
 
 ```typescript
 export function isEmailError(error: unknown): error is EmailError {
   return error instanceof EmailError;
 }
-
-export function isEmailProviderType(value: unknown): value is EmailProviderType {
-  return typeof value === 'string' && EMAIL_PROVIDERS.includes(value as EmailProviderType);
-}
 ```
 
-## JSDoc Documentation Standards
+## Documentation
 
-### All Public APIs Must Have JSDoc
-
-**Required for:**
-- Exported classes
-- Exported functions
-- Exported interfaces/types
-- Public methods
-
-**Format:**
+All exported code needs JSDoc comments:
 
 ```typescript
 /**
- * Brief description of what this does.
+ * Brief description.
  * 
- * More detailed explanation if needed. Can span multiple lines.
- * 
- * @param paramName - Parameter description
- * @param anotherParam - Another parameter description
- * @returns Description of return value
- * @throws {ErrorType} When this error is thrown
+ * @param name - What this parameter does
+ * @returns What this returns
+ * @throws {ErrorType} When this throws
  * 
  * @example
  * ```typescript
- * const result = myFunction('example');
- * console.log(result);
+ * const result = myFunction('test');
  * ```
- * 
- * @see RelatedType - Link to related documentation
  */
-export function myFunction(paramName: string, anotherParam: number): string {
+export function myFunction(name: string): string {
   // ...
 }
 ```
 
-### Class Documentation
+For interfaces, document each property:
 
 ```typescript
-/**
- * Brief class description.
- * 
- * Detailed explanation of the class purpose and behavior.
- * 
- * @example Single provider
- * ```typescript
- * const service = new EmailService({ provider: 'ses' });
- * ```
- * 
- * @example With failover
- * ```typescript
- * const service = new EmailService({
- *   primary: { provider: 'ses' },
- *   backups: [{ provider: 'sendgrid' }]
- * });
- * ```
- */
-export class EmailService {
-  /**
-   * Constructor description.
-   * 
-   * @param config - Configuration parameter description
-   * @throws {Error} When configuration is invalid
-   * @see SESConfig - AWS SES configuration
-   * @see SendGridConfig - SendGrid configuration
-   */
-  constructor(config: EmailServiceConfig) {
-    // ...
-  }
-
-  /**
-   * Method description.
-   * 
-   * @param param - Parameter description
-   * @returns Return value description
-   * @throws {EmailValidationError} When validation fails
-   */
-  async send(param: EmailSendConfig): Promise<EmailSendResult[]> {
-    // ...
-  }
-}
-```
-
-### Interface Documentation
-
-```typescript
-/**
- * Configuration for email sending operations.
- * 
- * @example
- * ```typescript
- * const message: EmailMessage = {
- *   from: 'sender@example.com',
- *   to: 'recipient@example.com',
- *   subject: 'Hello',
- *   html: '<p>Hi</p>'
- * };
- * ```
- */
+/** Email message configuration. */
 export interface EmailMessage {
-  /** Sender email address (supports "Name <email@domain.com>" format) */
+  /** Sender email address */
   from: string;
   /** Recipient email address(es) */
   to: string | string[];
-  /** Email subject line */
-  subject: string;
-  /** HTML content (at least one of text or html is required) */
-  html?: string;
 }
 ```
 
-### Multiple Examples
+## Errors
 
-Use multiple `@example` tags for different use cases:
-
-```typescript
-/**
- * Service description.
- * 
- * @example AWS SES
- * ```typescript
- * const service = new EmailService({ provider: 'ses' });
- * ```
- * 
- * @example SendGrid
- * ```typescript
- * const service = new EmailService({ provider: 'sendgrid' });
- * ```
- */
-```
-
-## Error Handling Standards
-
-### Custom Error Classes
-
-All errors should extend a base error class:
+Create custom error classes with useful context:
 
 ```typescript
 export class EmailError extends Error {
   constructor(
     message: string,
     public readonly provider: string,
-    public readonly statusCode?: number,
-    public readonly originalError?: unknown,
-    public readonly isRetryable: boolean = false
+    public readonly statusCode?: number
   ) {
     super(message);
     this.name = 'EmailError';
-    
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, EmailError);
     }
@@ -249,301 +70,122 @@ export class EmailError extends Error {
 }
 ```
 
-### Error Type Guards
-
-Always provide type guards for error types:
+Throw specific errors, not generic ones:
 
 ```typescript
-export function isEmailError(error: unknown): error is EmailError {
-  return error instanceof EmailError;
-}
+// Good
+throw new EmailValidationError('Invalid email', 'from');
+
+// Bad
+throw new Error('Invalid email');
 ```
 
-### Error Creation Pattern
+## Provider Adapters
 
-Use static factory methods for error creation:
-
-```typescript
-static from(error: unknown, provider: string, isRetryable: boolean = false): EmailError {
-  if (error instanceof EmailError) {
-    return error;
-  }
-  
-  const message = error instanceof Error ? error.message : String(error);
-  const statusCode = (error as any)?.statusCode || (error as any)?.status;
-  
-  return new EmailError(message, provider, statusCode, error, isRetryable);
-}
-```
-
-## Provider Adapter Standards
-
-### Interface Implementation
-
-All adapters must implement the service interface:
+All adapters implement the service interface. Use `require()` with try-catch for optional dependencies:
 
 ```typescript
 export class SESProvider implements IEmailProvider {
   readonly name = 'ses';
   
   constructor(config: SESConfig = {}) {
-    // Check for required dependencies
     try {
       const { SESClient } = require('@aws-sdk/client-ses');
-      // Initialize provider
+      // Initialize
     } catch (error) {
-      throw new Error('Package is not installed. Install it with: npm install @aws-sdk/client-ses');
+      throw new Error('Install package: npm install @aws-sdk/client-ses');
     }
   }
   
   async send(config: EmailSendConfig): Promise<EmailSendResult[]> {
     // Implementation
   }
-  
-  async health(): Promise<EmailHealthInfo> {
-    // Implementation
-  }
 }
 ```
 
-### Dynamic Imports for Optional Dependencies
-
-Use `require()` inside try-catch for optional peer dependencies:
+Catch errors and return structured results:
 
 ```typescript
-constructor(config: SMTPConfig = {}) {
-  try {
-    const nodemailer = require('nodemailer');
-    const { createTransport } = nodemailer;
-    this.transporter = createTransport(transportOptions);
-  } catch (error) {
-    throw new Error('nodemailer is not installed. Install it with: npm install nodemailer');
-  }
+try {
+  const result = await this.sendMessage(message);
+  results.push(result);
+} catch (error) {
+  results.push({
+    success: false,
+    error: error.message,
+    provider: this.name,
+    timestamp: new Date()
+  });
 }
 ```
 
-### Error Handling in Adapters
+## Validation
 
-Adapters should convert errors to structured format:
-
-```typescript
-async send(config: EmailSendConfig): Promise<EmailSendResult[]> {
-  const messages = isSingleMessageConfig(config) 
-    ? [config.message] 
-    : config.messages || [];
-  const results: EmailSendResult[] = [];
-
-  for (const message of messages) {
-    try {
-      const result = await this.sendSingleMessage(message);
-      results.push(result);
-    } catch (error) {
-      const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
-      results.push({
-        success: false,
-        error: emailError.message,
-        provider: this.name,
-        timestamp: new Date(),
-      });
-    }
-  }
-
-  return results;
-}
-
-private isRetryableError(error: unknown): boolean {
-  const statusCode = (error as any)?.statusCode || (error as any)?.status;
-  return statusCode ? [429, 500, 502, 503, 504].includes(statusCode) : false;
-}
-```
-
-## Validation Standards
-
-### Always Validate Public Inputs
-
-All public methods should validate inputs:
+Validate all public inputs and throw specific errors:
 
 ```typescript
-export function validateEmailMessage(message: EmailMessage): void {
+export function validateEmail(message: EmailMessage): void {
   if (!message.from) {
-    throw new EmailValidationError('From address is required', 'from');
+    throw new EmailValidationError('From address required', 'from');
   }
-  validateEmail(message.from, 'from');
-  
   if (!message.to) {
-    throw new EmailValidationError('To address is required', 'to');
+    throw new EmailValidationError('To address required', 'to');
   }
-  validateEmails(message.to, 'to');
-  
-  // ... more validation
 }
 ```
 
-### Throw Structured Errors
+## Logging
+
+Use `coloredConsoleLogger()` as the default, but allow users to inject their own:
 
 ```typescript
-// Good
-throw new EmailValidationError('Invalid email address in from: invalid', 'from');
+import type { Logger } from '../logger';
+import { coloredConsoleLogger } from '../logger';
 
-// Bad
-throw new Error('Invalid email');
+export class EmailService {
+  private readonly logger: Logger;
+  
+  constructor(config: EmailServiceConfig) {
+    this.logger = config.logger || coloredConsoleLogger();
+  }
+}
 ```
 
-## Import Organization
+## Naming
 
-Organize imports in this order:
-
-```typescript
-// 1. Type-only imports
-import type { SESConfig, SendGridConfig } from './types';
-
-// 2. Value imports from same package
-import { IEmailProvider, EmailServiceConfig } from './types';
-
-// 3. Adapter imports
-import { SESProvider } from './adapters/ses';
-import { SendGridProvider } from './adapters/sendgrid';
-
-// 4. Utility imports
-import { validateEmailMessage } from './validation';
-import { EmailError, EmailProviderError } from './errors';
-import { withRetry } from './retry';
-```
-
-## Naming Conventions
-
-### Classes
-- PascalCase: `EmailService`, `SESProvider`, `EmailValidationError`
-- Suffix with purpose: `*Provider`, `*Service`, `*Error`
-
-### Interfaces
-- PascalCase with `I` prefix for behavior contracts: `IEmailProvider`
-- No prefix for data structures: `EmailMessage`, `EmailConfig`
-
-### Types
-- PascalCase: `EmailProviderType`, `EmailSendConfig`
-- Descriptive names that explain the type's purpose
-
-### Functions
-- camelCase: `validateEmail`, `isValidEmail`, `withRetry`
-- Prefix with verb: `validate*`, `is*`, `with*`, `create*`
-
-### Constants
-- UPPER_SNAKE_CASE: `EMAIL_PROVIDERS`, `DEFAULT_RETRY_OPTIONS`
-- Use const assertions for array constants
+- **Classes**: `PascalCase` - `EmailService`, `SESProvider`
+- **Interfaces**: `IEmailProvider` (with `I` prefix), or `EmailMessage` (data structures)
+- **Functions**: `camelCase` - `validateEmail`, `isValid`, `withRetry`
+- **Constants**: `UPPER_SNAKE_CASE` - `EMAIL_PROVIDERS`
 
 ## Code Style
 
-### Prefer Readonly
-
-Use `readonly` for properties that shouldn't change:
+- Use `readonly` for properties that don't change
+- Use `async/await`, not `.then()` 
+- Mark properties `readonly` in constructors:
 
 ```typescript
 export class EmailService {
-  private readonly primaryProvider: IEmailProvider;
-  private readonly backupProviders: IEmailProvider[];
-}
-
-export class EmailError extends Error {
-  constructor(
-    message: string,
-    public readonly provider: string,
-    public readonly statusCode?: number
-  ) { }
+  private readonly provider: IEmailProvider;
+  
+  constructor(config: EmailServiceConfig) {
+    this.provider = createProvider(config);
+  }
 }
 ```
 
-### Discriminated Unions
+## Testing
 
-Use discriminated unions with `never` for mutual exclusivity:
+- Unit tests: `tests/unit/email/validation.test.ts` (mirrors `src/email/validation.ts`)
+- Integration tests: `tests/integration/email/adapters/ses.test.ts` (real API calls)
 
-```typescript
-export type EmailSendConfig =
-  | { message: EmailMessage; messages?: never; opts?: EmailBaseOptions }
-  | { messages: EmailMessage[]; message?: never; opts?: EmailBaseOptions };
-```
+## Exports
 
-### Async/Await
-
-Always use async/await, never raw promises:
-
-```typescript
-// Good
-async send(config: EmailSendConfig): Promise<EmailSendResult[]> {
-  const result = await provider.send(config);
-  return result;
-}
-
-// Bad
-send(config: EmailSendConfig): Promise<EmailSendResult[]> {
-  return provider.send(config).then(result => result);
-}
-```
-
-## Testing Standards
-
-### Unit Test File Naming
-
-Match source file structure:
-- `src/email/validation.ts` → `tests/unit/email/validation.test.ts`
-- `src/email/errors.ts` → `tests/unit/email/errors.test.ts`
-
-### Test Organization
-
-```typescript
-describe('ModuleName', () => {
-  describe('functionName', () => {
-    it('should do something specific', () => {
-      // Test implementation
-    });
-    
-    it('should handle edge case', () => {
-      // Test implementation
-    });
-  });
-});
-```
-
-### Integration vs Unit Tests
-
-- **Unit tests** (`tests/unit/`) - No external dependencies, mocked providers, run in CI
-- **Integration tests** (`tests/integration/`) - Real API calls, require credentials, run locally
-
-## File Headers
-
-No file headers or copyright comments needed. License is in LICENSE file.
-
-## Comments
-
-Prefer JSDoc over inline comments. Inline comments only for complex logic:
-
-```typescript
-// Good - JSDoc explains the public API
-/**
- * Validates email address format.
- */
-export function validateEmail(email: string): void {
-  // Implementation
-}
-
-// Bad - unnecessary comment
-// This function validates emails
-export function validateEmail(email: string): void {
-  // Implementation
-}
-```
-
-## Export Organization
-
-Each module's `index.ts` should export all public APIs:
+Export public APIs from each module's `index.ts`:
 
 ```typescript
 // src/email/index.ts
 export * from './service';
 export * from './types';
-export * from './adapters';
 export * from './errors';
-export * from './validation';
 ```
-
-Don't re-export internal utilities that users shouldn't use directly.

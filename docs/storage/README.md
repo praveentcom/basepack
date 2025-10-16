@@ -1,6 +1,8 @@
 # Storage Service
 
-The Storage service provides a unified interface for file storage operations across different cloud storage providers. It currently supports AWS S3 and S3-compatible services like MinIO, DigitalOcean Spaces, and others.
+The Storage service provides a unified interface for file storage operations across different cloud storage providers. It currently supports:
+- **AWS S3** and S3-compatible services (MinIO, DigitalOcean Spaces, etc.)
+- **Google Cloud Storage (GCS)**
 
 ## Features
 
@@ -25,6 +27,12 @@ For AWS S3 support, install the AWS SDK:
 
 ```bash
 npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
+```
+
+For Google Cloud Storage support, install the GCS SDK:
+
+```bash
+npm install @google-cloud/storage
 ```
 
 ## Quick Start
@@ -102,6 +110,71 @@ const storage = new StorageService({
   config: {
     bucket: 'my-bucket',
     region: 'us-east-1'
+  }
+});
+```
+
+### Google Cloud Storage
+
+#### Using Default Credentials (Application Default Credentials)
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.GCS,
+  config: {
+    bucket: 'my-bucket'
+    // Uses Application Default Credentials (ADC):
+    // - GOOGLE_APPLICATION_CREDENTIALS environment variable
+    // - gcloud CLI credentials
+    // - Service account (when running on GCP)
+  }
+});
+```
+
+#### Using Standard GCP Environment Variables (Recommended)
+
+Set the standard GCP environment variables:
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
+export GOOGLE_CLOUD_PROJECT="my-project-id"
+```
+
+Then initialize the service:
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.GCS,
+  config: {
+    bucket: 'my-bucket'
+    // Automatically uses GOOGLE_APPLICATION_CREDENTIALS and GOOGLE_CLOUD_PROJECT
+  }
+});
+```
+
+#### Using Service Account Key File (Explicit)
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.GCS,
+  config: {
+    bucket: 'my-bucket',
+    projectId: 'my-project-id',
+    keyFilename: '/path/to/service-account-key.json'
+  }
+});
+```
+
+#### Using Credentials Object
+
+```typescript
+const storage = new StorageService({
+  provider: StorageProvider.GCS,
+  config: {
+    bucket: 'my-bucket',
+    projectId: 'my-project-id',
+    credentials: {
+      client_email: 'service-account@project.iam.gserviceaccount.com',
+      private_key: process.env.GCP_PRIVATE_KEY!.replace(/\\n/g, '\n')
+    }
   }
 });
 ```
@@ -578,23 +651,36 @@ async function uploadFile(file: File) {
 
 ### "Package is not installed" Error
 
-If you see an error about missing packages:
+If you see an error about missing packages, install the required peer dependency:
 
+**For AWS S3:**
 ```bash
 npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner
 ```
 
+**For Google Cloud Storage:**
+```bash
+npm install @google-cloud/storage
+```
+
 ### Credentials Not Found
 
-Ensure credentials are provided in one of these ways:
+**For AWS S3**, ensure credentials are provided in one of these ways:
 1. Explicitly in config
 2. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 3. AWS credentials file (`~/.aws/credentials`)
 4. IAM role (when running on AWS)
 
+**For Google Cloud Storage**, ensure credentials are provided in one of these ways:
+1. `GOOGLE_APPLICATION_CREDENTIALS` environment variable (recommended)
+2. Service account key file in config
+3. Credentials object in config
+4. Application Default Credentials from gcloud CLI
+5. Service account (when running on GCP)
+
 ### Bucket Access Denied
 
-Ensure your AWS credentials have the necessary permissions:
+**For AWS S3**, ensure your credentials have the necessary permissions:
 
 ```json
 {
@@ -617,9 +703,20 @@ Ensure your AWS credentials have the necessary permissions:
 }
 ```
 
+**For Google Cloud Storage**, ensure your service account has the necessary roles:
+- `Storage Object Admin` - Full control of objects
+- `Storage Object Creator` - Create objects only
+- `Storage Object Viewer` - Read objects only
+
+Or grant specific permissions:
+- `storage.objects.create` - Upload files
+- `storage.objects.get` - Download files
+- `storage.objects.delete` - Delete files
+- `storage.buckets.get` - Health checks
+
 ### CORS Issues with Signed URLs
 
-If uploading from a browser, ensure your S3 bucket has CORS configured:
+**For AWS S3**, ensure your bucket has CORS configured:
 
 ```json
 [
@@ -631,6 +728,25 @@ If uploading from a browser, ensure your S3 bucket has CORS configured:
     "MaxAgeSeconds": 3600
   }
 ]
+```
+
+**For Google Cloud Storage**, use the `gsutil` CLI or Console:
+
+```bash
+# Create cors.json
+cat > cors.json << 'EOF'
+[
+  {
+    "origin": ["https://your-domain.com"],
+    "method": ["GET", "PUT", "POST", "DELETE"],
+    "responseHeader": ["Content-Type", "Content-Length"],
+    "maxAgeSeconds": 3600
+  }
+]
+EOF
+
+# Apply CORS configuration
+gsutil cors set cors.json gs://your-bucket
 ```
 
 ## Performance Tips

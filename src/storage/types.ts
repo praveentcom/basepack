@@ -19,13 +19,14 @@ import type { Logger } from '../logger/types';
  * ```
  */
 export enum StorageProvider {
-  S3 = 's3'
+  S3 = 's3',
+  GCS = 'gcs'
 }
 
 /**
  * Supported storage providers
  */
-export const STORAGE_PROVIDERS = ['s3'] as const;
+export const STORAGE_PROVIDERS = ['s3', 'gcs'] as const;
 
 /**
  * Storage provider type
@@ -74,22 +75,79 @@ export interface S3Config {
 }
 
 /**
+ * Google Cloud Storage configuration
+ * 
+ * @example Using default credentials
+ * ```typescript
+ * const config: GCSConfig = {
+ *   bucket: 'my-bucket'
+ * };
+ * ```
+ * 
+ * @example Using service account key file
+ * ```typescript
+ * const config: GCSConfig = {
+ *   bucket: 'my-bucket',
+ *   keyFilename: '/path/to/service-account-key.json'
+ * };
+ * ```
+ * 
+ * @example Using credentials object
+ * ```typescript
+ * const config: GCSConfig = {
+ *   bucket: 'my-bucket',
+ *   credentials: {
+ *     client_email: 'service-account@project.iam.gserviceaccount.com',
+ *     private_key: '-----BEGIN PRIVATE KEY-----\n...'
+ *   }
+ * };
+ * ```
+ */
+export interface GCSConfig {
+  /** GCS bucket name */
+  bucket: string;
+  /** GCS project ID (optional, can be inferred from credentials) */
+  projectId?: string;
+  /** Path to service account key file */
+  keyFilename?: string;
+  /** Service account credentials object */
+  credentials?: {
+    client_email: string;
+    private_key: string;
+  };
+  /** Custom API endpoint (for testing) */
+  apiEndpoint?: string;
+}
+
+/**
  * Base storage provider configuration
  */
 export type StorageProviderConfig = 
   | { provider: 's3'; config?: S3Config }
+  | { provider: 'gcs'; config?: GCSConfig }
   | { provider: StorageProviderType; config?: Record<string, unknown> };
 
 /**
  * Storage service configuration with single provider
  * 
- * @example Single provider
+ * @example AWS S3
  * ```typescript
  * const config: StorageServiceConfig = {
  *   provider: 's3',
  *   config: {
  *     bucket: 'my-bucket',
  *     region: 'us-east-1'
+ *   }
+ * };
+ * ```
+ * 
+ * @example Google Cloud Storage
+ * ```typescript
+ * const config: StorageServiceConfig = {
+ *   provider: 'gcs',
+ *   config: {
+ *     bucket: 'my-bucket',
+ *     keyFilename: '/path/to/service-account-key.json'
  *   }
  * };
  * ```
@@ -108,7 +166,7 @@ export type StorageProviderConfig =
  */
 export type StorageServiceConfig = {
   provider: StorageProviderType;
-  config?: S3Config | Record<string, unknown>;
+  config?: S3Config | GCSConfig | Record<string, unknown>;
   logger?: Logger;
 }
 
@@ -187,6 +245,21 @@ export interface UrlUploadConfig {
  * ```
  */
 export interface FileDownloadConfig {
+  /** File key/path in storage */
+  key: string;
+}
+
+/**
+ * File delete configuration
+ * 
+ * @example Delete file
+ * ```typescript
+ * const deleteConfig: FileDeleteConfig = {
+ *   key: 'documents/report.pdf'
+ * };
+ * ```
+ */
+export interface FileDeleteConfig {
   /** File key/path in storage */
   key: string;
 }
@@ -271,6 +344,22 @@ export interface FileDownloadResult {
 }
 
 /**
+ * File delete result
+ */
+export interface FileDeleteResult {
+  /** Whether deletion was successful */
+  success: boolean;
+  /** File key/path in storage */
+  key: string;
+  /** Storage provider used */
+  provider: string;
+  /** Deletion timestamp */
+  timestamp: Date;
+  /** Error message if deletion failed */
+  error?: string;
+}
+
+/**
  * Signed URL result
  */
 export interface SignedUrlResult {
@@ -336,6 +425,14 @@ export interface IStorageProvider {
    * @returns Download result with file data
    */
   download(config: FileDownloadConfig): Promise<FileDownloadResult>;
+
+  /**
+   * Delete a file from storage
+   * 
+   * @param config - Delete configuration
+   * @returns Delete result
+   */
+  delete(config: FileDeleteConfig): Promise<FileDeleteResult>;
 
   /**
    * Generate a signed URL for file access

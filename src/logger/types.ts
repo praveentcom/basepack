@@ -37,6 +37,7 @@
  * const logger: Logger = {
  *   debug: (msg, ...args) => myLogger.log('DEBUG', msg, args),
  *   info: (msg, ...args) => myLogger.log('INFO', msg, args),
+ *   warn: (msg, ...args) => myLogger.log('WARN', msg, args),
  *   error: (msg, ...args) => myLogger.log('ERROR', msg, args),
  * };
  * 
@@ -69,6 +70,15 @@ export interface Logger {
    * @param args - Additional arguments to log
    */
   info(message: string, ...args: any[]): void;
+
+  /**
+   * Log warning messages for potentially problematic situations.
+   * Warn logs should be used for recoverable issues that don't prevent operation.
+   * 
+   * @param message - Log message
+   * @param args - Additional arguments to log
+   */
+  warn(message: string, ...args: any[]): void;
 
   /**
    * Log error messages for failures and exceptions.
@@ -109,6 +119,7 @@ export interface Logger {
 export const noopLogger: Logger = {
   debug: () => {},
   info: () => {},
+  warn: () => {},
   error: () => {},
 };
 

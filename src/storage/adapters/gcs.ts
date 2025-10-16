@@ -1,11 +1,11 @@
 /**
- * AWS S3 storage adapter
- * @module storage/adapters/s3
+ * Google Cloud Storage adapter
+ * @module storage/adapters/gcs
  */
 
 import type {
   IStorageProvider,
-  S3Config,
+  GCSConfig,
   FileUploadConfig,
   UrlUploadConfig,
   FileDownloadConfig,
@@ -28,19 +28,14 @@ import {
 } from '../validation';
 
 /**
- * AWS S3 storage provider
+ * Google Cloud Storage provider
  * 
- * Provides file storage operations using AWS S3 or S3-compatible services.
+ * Provides file storage operations using Google Cloud Storage.
  * 
- * @example Basic usage
+ * @example Basic usage with default credentials
  * ```typescript
- * const provider = new S3Provider({
- *   bucket: 'my-bucket',
- *   region: 'us-east-1',
- *   credentials: {
- *     accessKeyId: 'AKIA...',
- *     secretAccessKey: 'secret...'
- *   }
+ * const provider = new GCSProvider({
+ *   bucket: 'my-bucket'
  * });
  * 
  * // Upload file
@@ -51,89 +46,103 @@ import {
  * });
  * ```
  * 
- * @example S3-compatible service (MinIO, DigitalOcean Spaces, etc.)
+ * @example Using service account key file
  * ```typescript
- * const provider = new S3Provider({
+ * const provider = new GCSProvider({
  *   bucket: 'my-bucket',
- *   region: 'us-east-1',
- *   endpoint: 'https://nyc3.digitaloceanspaces.com',
- *   forcePathStyle: true
+ *   keyFilename: '/path/to/service-account-key.json'
  * });
  * ```
  * 
- * @example Using default credentials
+ * @example Using credentials object
  * ```typescript
- * // Uses credentials from environment or AWS config
- * const provider = new S3Provider({
+ * const provider = new GCSProvider({
  *   bucket: 'my-bucket',
- *   region: 'us-east-1'
+ *   credentials: {
+ *     client_email: 'service-account@project.iam.gserviceaccount.com',
+ *     private_key: '-----BEGIN PRIVATE KEY-----\n...'
+ *   }
+ * });
+ * ```
+ * 
+ * @example With project ID
+ * ```typescript
+ * const provider = new GCSProvider({
+ *   bucket: 'my-bucket',
+ *   projectId: 'my-project-id',
+ *   keyFilename: '/path/to/service-account-key.json'
  * });
  * ```
  */
-export class S3Provider implements IStorageProvider {
-  readonly name = 's3';
-  private readonly client: any;
-  private readonly bucket: string;
+export class GCSProvider implements IStorageProvider {
+  readonly name = 'gcs';
+  private readonly storage: any;
+  private readonly bucket: any;
   private readonly logger: Logger;
 
   /**
-   * Creates a new S3Provider instance
+   * Creates a new GCSProvider instance
    * 
-   * @param config - S3 configuration
+   * @param config - GCS configuration
    * @param logger - Optional logger for debugging and monitoring
-   * @throws {StorageProviderError} If AWS SDK is not installed
+   * @throws {StorageProviderError} If Google Cloud Storage SDK is not installed
    * @throws {StorageError} If configuration is invalid
    * 
    * @example
    * ```typescript
-   * const provider = new S3Provider({
+   * const provider = new GCSProvider({
    *   bucket: 'my-bucket',
-   *   region: 'us-east-1'
+   *   keyFilename: '/path/to/service-account-key.json'
    * });
    * ```
    */
-  constructor(config: S3Config, logger: Logger = console) {
+  constructor(config: GCSConfig, logger: Logger = console) {
     this.logger = logger;
-    this.logger.debug('Basepack Storage: Initializing provider', { provider: 's3', bucket: config.bucket, region: config.region });
+    this.logger.debug('Basepack Storage: Initializing provider', { 
+      provider: 'gcs', 
+      bucket: config.bucket, 
+      projectId: config.projectId 
+    });
     
     if (!config.bucket) {
-      this.logger.error('Basepack Storage: Provider bucket missing', { provider: 's3' });
-      throw new StorageError('S3 bucket is required', this.name);
+      this.logger.error('Basepack Storage: Provider bucket missing', { provider: 'gcs' });
+      throw new StorageError('GCS bucket is required', this.name);
     }
 
-    this.bucket = config.bucket;
-
     try {
-      const { S3Client } = require('@aws-sdk/client-s3');
+      const { Storage } = require('@google-cloud/storage');
       
-      const clientConfig: any = {
-        region: config.region || 'us-east-1',
-      };
+      const storageConfig: any = {};
+
+      if (config.projectId) {
+        storageConfig.projectId = config.projectId;
+      }
+
+      if (config.keyFilename) {
+        storageConfig.keyFilename = config.keyFilename;
+      }
 
       if (config.credentials) {
-        clientConfig.credentials = config.credentials;
+        storageConfig.credentials = config.credentials;
       }
 
-      if (config.endpoint) {
-        clientConfig.endpoint = config.endpoint;
+      if (config.apiEndpoint) {
+        storageConfig.apiEndpoint = config.apiEndpoint;
       }
 
-      if (config.forcePathStyle !== undefined) {
-        clientConfig.forcePathStyle = config.forcePathStyle;
-      }
-
-      this.client = new S3Client(clientConfig);
+      this.storage = new Storage(storageConfig);
+      this.bucket = this.storage.bucket(config.bucket);
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider initialization failed', { provider: 's3', error });
+      this.logger.error('Basepack Storage: Provider initialization failed', { provider: 'gcs', error });
       throw new StorageProviderError(
         this.name,
-        '@aws-sdk/client-s3 is not installed. Install it with: npm install @aws-sdk/client-s3'
+        '@google-cloud/storage is not installed. Install it with: npm install @google-cloud/storage'
       );
     }
   }
 
   /**
-   * Upload a file to S3
+   * Upload a file to GCS
    * 
    * @param config - Upload configuration
    * @returns Upload result
@@ -153,49 +162,67 @@ export class S3Provider implements IStorageProvider {
    */
   async upload(config: FileUploadConfig): Promise<FileUploadResult> {
     validateFileUpload(config);
-    this.logger.debug('Basepack Storage: Provider uploading file', { provider: 's3', bucket: this.bucket, key: config.key });
-
-    const startTime = Date.now();
+    this.logger.debug('Basepack Storage: Provider uploading file', { 
+      provider: 'gcs', 
+      bucket: this.bucket.name, 
+      key: config.key 
+    });
 
     try {
-      const { PutObjectCommand } = require('@aws-sdk/client-s3');
-
-      const params: any = {
-        Bucket: this.bucket,
-        Key: config.key,
-        Body: config.data,
-      };
+      const file = this.bucket.file(config.key);
+      const options: any = {};
 
       if (config.contentType) {
-        params.ContentType = config.contentType;
+        options.metadata = {
+          contentType: config.contentType,
+        };
       }
 
       if (config.metadata) {
-        params.Metadata = config.metadata;
+        options.metadata = {
+          ...options.metadata,
+          metadata: config.metadata,
+        };
       }
 
       if (config.cacheControl) {
-        params.CacheControl = config.cacheControl;
+        options.metadata = {
+          ...options.metadata,
+          cacheControl: config.cacheControl,
+        };
       }
 
       if (config.contentEncoding) {
-        params.ContentEncoding = config.contentEncoding;
+        options.metadata = {
+          ...options.metadata,
+          contentEncoding: config.contentEncoding,
+        };
       }
 
-      const command = new PutObjectCommand(params);
-      const response = await this.client.send(command);
+      await file.save(config.data, options);
 
-      this.logger.debug('Basepack Storage: Provider file uploaded', { provider: 's3', key: config.key, etag: response.ETag });
+      // Get metadata to extract etag
+      const [metadata] = await file.getMetadata();
+
+      this.logger.debug('Basepack Storage: Provider file uploaded', { 
+        provider: 'gcs', 
+        key: config.key, 
+        etag: metadata.etag 
+      });
 
       return {
         success: true,
         key: config.key,
         provider: this.name,
         timestamp: new Date(),
-        etag: response.ETag,
+        etag: metadata.etag,
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider upload failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider upload failed', { 
+        provider: 'gcs', 
+        key: config.key, 
+        error 
+      });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -209,9 +236,9 @@ export class S3Provider implements IStorageProvider {
   }
 
   /**
-   * Upload a file from a URL to S3
+   * Upload a file from a URL to GCS
    * 
-   * Downloads the file from the URL and uploads it to S3.
+   * Downloads the file from the URL and uploads it to GCS.
    * 
    * @param config - URL upload configuration
    * @returns Upload result
@@ -230,7 +257,11 @@ export class S3Provider implements IStorageProvider {
    */
   async uploadFromUrl(config: UrlUploadConfig): Promise<FileUploadResult> {
     validateUrlUpload(config);
-    this.logger.debug('Basepack Storage: Provider uploading from URL', { provider: 's3', key: config.key, url: config.url });
+    this.logger.debug('Basepack Storage: Provider uploading from URL', { 
+      provider: 'gcs', 
+      key: config.key, 
+      url: config.url 
+    });
 
     try {
       // Fetch the file from URL
@@ -249,7 +280,7 @@ export class S3Provider implements IStorageProvider {
       // Detect content type if not provided
       const contentType = config.contentType || response.headers.get('content-type') || undefined;
 
-      // Upload to S3
+      // Upload to GCS
       return await this.upload({
         key: config.key,
         data: buffer,
@@ -258,7 +289,12 @@ export class S3Provider implements IStorageProvider {
         cacheControl: config.cacheControl,
       });
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider URL upload failed', { provider: 's3', key: config.key, url: config.url, error });
+      this.logger.error('Basepack Storage: Provider URL upload failed', { 
+        provider: 'gcs', 
+        key: config.key, 
+        url: config.url, 
+        error 
+      });
       
       if (error instanceof StorageError) {
         return {
@@ -283,7 +319,7 @@ export class S3Provider implements IStorageProvider {
   }
 
   /**
-   * Download a file from S3
+   * Download a file from GCS
    * 
    * @param config - Download configuration
    * @returns Download result with file data
@@ -303,30 +339,26 @@ export class S3Provider implements IStorageProvider {
    */
   async download(config: FileDownloadConfig): Promise<FileDownloadResult> {
     validateFileDownload(config);
-    this.logger.debug('Basepack Storage: Provider downloading file', { provider: 's3', bucket: this.bucket, key: config.key });
+    this.logger.debug('Basepack Storage: Provider downloading file', { 
+      provider: 'gcs', 
+      bucket: this.bucket.name, 
+      key: config.key 
+    });
 
     try {
-      const { GetObjectCommand } = require('@aws-sdk/client-s3');
+      const file = this.bucket.file(config.key);
 
-      const command = new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: config.key,
-      });
+      // Download file
+      const [buffer] = await file.download();
 
-      const response = await this.client.send(command);
-
-      // Convert stream to buffer
-      const chunks: Uint8Array[] = [];
-      for await (const chunk of response.Body) {
-        chunks.push(chunk);
-      }
-      const buffer = Buffer.concat(chunks);
+      // Get metadata
+      const [metadata] = await file.getMetadata();
 
       this.logger.debug('Basepack Storage: Provider file downloaded', { 
-        provider: 's3',
+        provider: 'gcs',
         key: config.key, 
-        sizeBytes: response.ContentLength,
-        contentType: response.ContentType
+        sizeBytes: metadata.size,
+        contentType: metadata.contentType
       });
 
       return {
@@ -334,14 +366,18 @@ export class S3Provider implements IStorageProvider {
         key: config.key,
         provider: this.name,
         data: buffer,
-        contentType: response.ContentType,
-        metadata: response.Metadata,
-        size: response.ContentLength,
-        lastModified: response.LastModified,
-        etag: response.ETag,
+        contentType: metadata.contentType,
+        metadata: metadata.metadata,
+        size: parseInt(metadata.size, 10),
+        lastModified: new Date(metadata.updated),
+        etag: metadata.etag,
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider download failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider download failed', { 
+        provider: 'gcs', 
+        key: config.key, 
+        error 
+      });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -354,7 +390,7 @@ export class S3Provider implements IStorageProvider {
   }
 
   /**
-   * Delete a file from S3
+   * Delete a file from GCS
    * 
    * @param config - Delete configuration
    * @returns Delete result
@@ -369,19 +405,20 @@ export class S3Provider implements IStorageProvider {
    */
   async delete(config: FileDeleteConfig): Promise<FileDeleteResult> {
     validateFileDelete(config);
-    this.logger.debug('Basepack Storage: Provider deleting file', { provider: 's3', bucket: this.bucket, key: config.key });
+    this.logger.debug('Basepack Storage: Provider deleting file', { 
+      provider: 'gcs', 
+      bucket: this.bucket.name, 
+      key: config.key 
+    });
 
     try {
-      const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+      const file = this.bucket.file(config.key);
+      await file.delete();
 
-      const command = new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: config.key,
+      this.logger.debug('Basepack Storage: Provider file deleted', { 
+        provider: 'gcs', 
+        key: config.key 
       });
-
-      await this.client.send(command);
-
-      this.logger.debug('Basepack Storage: Provider file deleted', { provider: 's3', key: config.key });
 
       return {
         success: true,
@@ -390,7 +427,11 @@ export class S3Provider implements IStorageProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider delete failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider delete failed', { 
+        provider: 'gcs', 
+        key: config.key, 
+        error 
+      });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -404,9 +445,9 @@ export class S3Provider implements IStorageProvider {
   }
 
   /**
-   * Generate a signed URL for S3 object access
+   * Generate a signed URL for GCS object access
    * 
-   * Creates a pre-signed URL that allows temporary access to an S3 object.
+   * Creates a pre-signed URL that allows temporary access to a GCS object.
    * 
    * @param config - Signed URL configuration
    * @returns Signed URL result
@@ -441,42 +482,35 @@ export class S3Provider implements IStorageProvider {
   async getSignedUrl(config: SignedUrlConfig): Promise<SignedUrlResult> {
     validateSignedUrl(config);
     this.logger.debug('Basepack Storage: Provider generating signed URL', { 
-      provider: 's3',
+      provider: 'gcs',
       key: config.key, 
       operation: config.operation || 'getObject',
       expiresInSec: config.expiresIn || 3600
     });
 
     try {
-      const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-      const { GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
-
+      const file = this.bucket.file(config.key);
       const expiresIn = config.expiresIn || 3600; // Default 1 hour
       const operation = config.operation || 'getObject';
 
-      let command: any;
-      if (operation === 'getObject') {
-        command = new GetObjectCommand({
-          Bucket: this.bucket,
-          Key: config.key,
-        });
-      } else {
-        const params: any = {
-          Bucket: this.bucket,
-          Key: config.key,
-        };
+      const options: any = {
+        version: 'v4',
+        action: operation === 'getObject' ? 'read' : 'write',
+        expires: Date.now() + expiresIn * 1000,
+      };
 
-        if (config.contentType) {
-          params.ContentType = config.contentType;
-        }
-
-        command = new PutObjectCommand(params);
+      if (operation === 'putObject' && config.contentType) {
+        options.contentType = config.contentType;
       }
 
-      const url = await getSignedUrl(this.client, command, { expiresIn });
+      const [url] = await file.getSignedUrl(options);
       const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
-      this.logger.debug('Basepack Storage: Provider signed URL generated', { provider: 's3', key: config.key, expiresAt });
+      this.logger.debug('Basepack Storage: Provider signed URL generated', { 
+        provider: 'gcs', 
+        key: config.key, 
+        expiresAt 
+      });
 
       return {
         success: true,
@@ -486,16 +520,11 @@ export class S3Provider implements IStorageProvider {
         expiresAt,
       };
     } catch (error) {
-      // Check if the error is due to missing presigner package
-      if (error instanceof Error && error.message.includes('@aws-sdk/s3-request-presigner')) {
-        this.logger.error('Basepack Storage: Provider package missing', { provider: 's3', package: '@aws-sdk/s3-request-presigner', error });
-        throw new StorageProviderError(
-          this.name,
-          '@aws-sdk/s3-request-presigner is not installed. Install it with: npm install @aws-sdk/s3-request-presigner'
-        );
-      }
-
-      this.logger.error('Basepack Storage: Provider signed URL failed', { provider: 's3', key: config.key, error });
+      this.logger.error('Basepack Storage: Provider signed URL failed', { 
+        provider: 'gcs', 
+        key: config.key, 
+        error 
+      });
       const storageError = StorageError.from(error, this.name, false);
       
       return {
@@ -508,9 +537,9 @@ export class S3Provider implements IStorageProvider {
   }
 
   /**
-   * Check S3 provider health
+   * Check GCS provider health
    * 
-   * Performs a lightweight operation to verify connectivity to S3.
+   * Performs a lightweight operation to verify connectivity to GCS.
    * 
    * @returns Health information
    * 
@@ -519,28 +548,33 @@ export class S3Provider implements IStorageProvider {
    * const health = await provider.health();
    * 
    * if (health.status === 'healthy') {
-   *   console.log(`S3 is healthy (${health.responseTime}ms)`);
+   *   console.log(`GCS is healthy (${health.responseTime}ms)`);
    * } else {
-   *   console.error(`S3 is unhealthy: ${health.error}`);
+   *   console.error(`GCS is unhealthy: ${health.error}`);
    * }
    * ```
    */
   async health(): Promise<StorageHealthInfo> {
-    this.logger.debug('Basepack Storage: Provider health check', { provider: 's3', bucket: this.bucket });
+    this.logger.debug('Basepack Storage: Provider health check', { 
+      provider: 'gcs', 
+      bucket: this.bucket.name 
+    });
     const startTime = Date.now();
 
     try {
-      const { HeadBucketCommand } = require('@aws-sdk/client-s3');
+      // Check if bucket exists and is accessible
+      const [exists] = await this.bucket.exists();
 
-      const command = new HeadBucketCommand({
-        Bucket: this.bucket,
-      });
-
-      await this.client.send(command);
+      if (!exists) {
+        throw new StorageError('Bucket does not exist or is not accessible', this.name);
+      }
 
       const responseTime = Date.now() - startTime;
 
-      this.logger.debug('Basepack Storage: Provider health check passed', { provider: 's3', responseTimeMs: responseTime });
+      this.logger.debug('Basepack Storage: Provider health check passed', { 
+        provider: 'gcs', 
+        responseTimeMs: responseTime 
+      });
 
       return {
         provider: this.name,
@@ -549,7 +583,10 @@ export class S3Provider implements IStorageProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider health check failed', { provider: 's3', error });
+      this.logger.error('Basepack Storage: Provider health check failed', { 
+        provider: 'gcs', 
+        error 
+      });
       const storageError = StorageError.from(error, this.name);
 
       return {
@@ -569,9 +606,9 @@ export class S3Provider implements IStorageProvider {
    */
   private isRetryableError(error: unknown): boolean {
     const statusCode = 
+      (error as any)?.code || 
       (error as any)?.statusCode || 
-      (error as any)?.status || 
-      (error as any)?.$metadata?.httpStatusCode;
+      (error as any)?.status;
     
     if (statusCode) {
       // Retry on rate limiting, server errors, and network issues
