@@ -18,7 +18,7 @@ describe('Retry Logic', () => {
 
   it('should retry on retryable errors', async () => {
     const fn = jest.fn()
-      .mockRejectedValueOnce(new EmailError('Timeout', EmailProvider.SES, 408, undefined, true))
+      .mockRejectedValueOnce(new EmailError('Timeout', EmailProvider.SENDGRID, 408, undefined, true))
       .mockResolvedValueOnce('success');
     
     const result = await withRetry(fn, { retries: 2, minTimeout: 10, maxTimeout: 50 });
@@ -29,7 +29,7 @@ describe('Retry Logic', () => {
 
   it('should not retry on non-retryable errors', async () => {
     const fn = jest.fn()
-      .mockRejectedValueOnce(new EmailError('Bad Request', EmailProvider.SES, 400, undefined, false));
+      .mockRejectedValueOnce(new EmailError('Bad Request', EmailProvider.SENDGRID, 400, undefined, false));
     
     await expect(withRetry(fn, { retries: 3 })).rejects.toThrow();
     expect(fn).toHaveBeenCalledTimes(1);
@@ -61,7 +61,7 @@ describe('Retry Logic', () => {
   });
 
   it('should throw after all retries exhausted', async () => {
-    const error = new EmailError('Timeout', EmailProvider.SES, 408, undefined, true);
+    const error = new EmailError('Timeout', EmailProvider.SENDGRID, 408, undefined, true);
     const fn = jest.fn().mockRejectedValue(error);
     
     await expect(withRetry(fn, { retries: 2, minTimeout: 10, maxTimeout: 50 })).rejects.toThrow(error);
@@ -70,7 +70,7 @@ describe('Retry Logic', () => {
 
   it('should call onRetry callback', async () => {
     const onRetry = jest.fn();
-    const error = new EmailError('Timeout', EmailProvider.SES, 408, undefined, true);
+    const error = new EmailError('Timeout', EmailProvider.SENDGRID, 408, undefined, true);
     const fn = jest.fn()
       .mockRejectedValueOnce(error)
       .mockResolvedValueOnce('success');
@@ -88,9 +88,9 @@ describe('Retry Logic', () => {
 
   it('should respect retry configuration', async () => {
     const fn = jest.fn()
-      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SES, 500, undefined, true))
-      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SES, 500, undefined, true))
-      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SES, 500, undefined, true))
+      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SENDGRID, 500, undefined, true))
+      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SENDGRID, 500, undefined, true))
+      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SENDGRID, 500, undefined, true))
       .mockResolvedValueOnce('success');
     
     const result = await withRetry(fn, { 
@@ -105,7 +105,7 @@ describe('Retry Logic', () => {
 
   it('should use default options', async () => {
     const fn = jest.fn()
-      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SES, 500, undefined, true))
+      .mockRejectedValueOnce(new EmailError('Error', EmailProvider.SENDGRID, 500, undefined, true))
       .mockResolvedValueOnce('success');
     
     const result = await withRetry(fn);

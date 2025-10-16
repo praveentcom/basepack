@@ -1,6 +1,5 @@
 import { StorageService } from '../../../../src/storage/service';
 import { StorageProvider } from '../../../../src/storage/types';
-import { coloredConsoleLogger } from '../../../../src/logger';
 import {
   getTestBucket,
   generateTestKey,
@@ -25,8 +24,7 @@ describe('S3 Provider', () => {
               secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
             }
           : undefined,
-      },
-      logger: coloredConsoleLogger(),
+      }
     });
 
     // Upload a test file once for all tests

@@ -1,6 +1,5 @@
 import { StorageService } from '../../../../src/storage/service';
 import { StorageProvider } from '../../../../src/storage/types';
-import { coloredConsoleLogger } from '../../../../src/logger';
 import {
   getTestBucket,
   generateTestKey,
@@ -37,8 +36,7 @@ describe('GCS Provider', () => {
 
     service = new StorageService({
       provider: StorageProvider.GCS,
-      config,
-      logger: coloredConsoleLogger(),
+      config
     });
 
     // Upload a test file once for all tests

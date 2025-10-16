@@ -283,41 +283,10 @@ function colorizeMessage(
 }
 
 /**
- * Creates a colored console logger with ANSI color codes.
- * 
- * This logger enhances the default console output with colors for better readability.
- * No additional dependencies required - uses ANSI escape codes.
- * 
- * Colors used:
- * - Service prefix ("Basepack Email"/"Basepack Storage"): Cyan/Magenta (bold)
- * - DEBUG messages: Gray text
- * - INFO messages: Blue text
- * - WARN messages: Yellow text
- * - ERROR messages: Red text (bold)
- * - Arguments: Default terminal color (uncolored)
- * 
- * @returns Logger interface with colored output
- * 
- * @example
- * ```typescript
- * import { coloredConsoleLogger, EmailService } from 'basepack';
- * 
- * const service = new EmailService({
- *   provider: EmailProvider.SES,
- *   logger: coloredConsoleLogger()
- * });
- * ```
- * 
- * @example Conditional colored logging
- * ```typescript
- * import { coloredConsoleLogger, noopLogger } from 'basepack';
- * 
- * const logger = process.env.NODE_ENV === 'test' 
- *   ? coloredConsoleLogger() 
- *   : noopLogger;
- * ```
+ * Creates a console logger. This is the default logger for all services.
+ * @returns Logger interface
  */
-export function coloredConsoleLogger(): Logger {
+export function consoleLogger(): Logger {
   return {
     debug: (message: string, ...args: any[]) => {
       const colored = colorizeMessage(message, colors.dim, colors.magenta, args);

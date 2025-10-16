@@ -8,13 +8,7 @@ alwaysApply: true
 - Use strict mode (no `any`, handle nulls explicitly)
 - Use `interface` for objects and public APIs
 - Use `type` for unions and combinations
-- Always create type guards for custom types:
-
-```typescript
-export function isEmailError(error: unknown): error is EmailError {
-  return error instanceof EmailError;
-}
-```
+- Use proper `enums` for provider names across all services
 
 ## Documentation
 
@@ -58,7 +52,7 @@ Create custom error classes with useful context:
 export class EmailError extends Error {
   constructor(
     message: string,
-    public readonly provider: string,
+    public readonly provider: ProviderName,
     public readonly statusCode?: number
   ) {
     super(message);
@@ -113,7 +107,7 @@ try {
   results.push({
     success: false,
     error: error.message,
-    provider: this.name,
+    provider: this.name, // ProviderName enum
     timestamp: new Date()
   });
 }
@@ -130,23 +124,6 @@ export function validateEmail(message: EmailMessage): void {
   }
   if (!message.to) {
     throw new EmailValidationError('To address required', 'to');
-  }
-}
-```
-
-## Logging
-
-Use `coloredConsoleLogger()` as the default, but allow users to inject their own:
-
-```typescript
-import type { Logger } from '../logger';
-import { coloredConsoleLogger } from '../logger';
-
-export class EmailService {
-  private readonly logger: Logger;
-  
-  constructor(config: EmailServiceConfig) {
-    this.logger = config.logger || coloredConsoleLogger();
   }
 }
 ```
@@ -177,7 +154,7 @@ export class EmailService {
 ## Testing
 
 - Unit tests: `tests/unit/email/validation.test.ts` (mirrors `src/email/validation.ts`)
-- Integration tests: `tests/integration/email/adapters/ses.test.ts` (real API calls)
+- Integration tests: `tests/integration/email/adapters/ses.test.ts` (real API and service calls)
 
 ## Exports
 

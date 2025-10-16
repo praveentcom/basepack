@@ -21,7 +21,7 @@ import type {
 } from './types';
 import { StorageProvider } from './types';
 import type { Logger } from '../logger';
-import { coloredConsoleLogger } from '../logger';
+import { consoleLogger } from '../logger';
 import { StorageProviderError } from './errors';
 import { S3Provider, GCSProvider } from './adapters';
 
@@ -110,7 +110,7 @@ export class StorageService {
    * ```
    */
   constructor(config: StorageServiceConfig) {
-    this.logger = config.logger || coloredConsoleLogger();
+    this.logger = config.logger || consoleLogger();
     this.logger.debug('Basepack Storage: Initializing service', { provider: config.provider });
     this.provider = this.createProvider(config);
   }

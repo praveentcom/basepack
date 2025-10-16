@@ -21,8 +21,7 @@ import type {
 } from './types';
 import { CacheProvider } from './types';
 import type { Logger } from '../logger';
-import { coloredConsoleLogger } from '../logger';
-import { CacheProviderError } from './errors';
+import { consoleLogger } from '../logger';
 import { RedisProvider, MemcachedProvider } from './adapters';
 
 /**
@@ -123,7 +122,7 @@ export class CacheService {
    * ```
    */
   constructor(config: CacheServiceConfig) {
-    this.logger = config.logger || coloredConsoleLogger();
+    this.logger = config.logger || consoleLogger();
     this.logger.debug('Basepack Cache: Initializing service', { provider: config.provider });
     this.provider = this.createProvider(config);
   }

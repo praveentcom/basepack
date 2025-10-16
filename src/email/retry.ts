@@ -1,6 +1,6 @@
 import { EmailError } from './errors';
 import type { Logger } from '../logger';
-import { coloredConsoleLogger } from '../logger';
+import { consoleLogger } from '../logger';
 
 /**
  * Configuration options for retry behavior.
@@ -114,7 +114,7 @@ function isRetryableError(error: unknown): boolean {
 export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {},
-  logger: Logger = coloredConsoleLogger()
+  logger: Logger = consoleLogger()
 ): Promise<T> {
   const opts = { ...DEFAULT_RETRY_OPTIONS, ...options };
   let lastError: unknown;

@@ -27,7 +27,7 @@ import { SMTPProvider } from './adapters/smtp';
 import { validateEmailMessage } from './validation';
 import { EmailError, EmailProviderError } from './errors';
 import { withRetry } from './retry';
-import { coloredConsoleLogger } from '../logger';
+import { consoleLogger } from '../logger';
 
 /**
  * Email service with multi-provider support and automatic failover.
@@ -125,7 +125,7 @@ export class EmailService {
    * @see {@link SMTPConfig} - SMTP configuration options
    */
   constructor(config: EmailServiceConfig) {
-    this.logger = config.logger || coloredConsoleLogger();
+    this.logger = config.logger || consoleLogger();
     
     // Check if this is a multi-provider config
     if ('primary' in config) {
