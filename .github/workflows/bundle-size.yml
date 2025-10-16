@@ -30,15 +30,26 @@ jobs:
       - name: Save PR bundle stats
         id: pr-stats
         run: |
-          mkdir -p bundle-stats
+          mkdir -p /tmp/bundle-stats
+          echo "Analyzing PR bundle files..."
+          ls -lh dist/
           for file in dist/*; do
             if [ -f "$file" ]; then
               filename=$(basename "$file")
               size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
               gzip_size=$(gzip -c "$file" | wc -c)
-              echo "$filename,$size,$gzip_size" >> bundle-stats/pr-stats.csv
+              echo "$filename,$size,$gzip_size" >> /tmp/bundle-stats/pr-stats.csv
+              echo "Saved stats for: $filename"
             fi
           done
+          
+          if [ ! -f /tmp/bundle-stats/pr-stats.csv ]; then
+            echo "Error: No bundle files found in dist/"
+            exit 1
+          fi
+          
+          echo "PR stats saved:"
+          cat /tmp/bundle-stats/pr-stats.csv
 
       - name: Checkout base branch
         uses: actions/checkout@v4
@@ -53,15 +64,25 @@ jobs:
       - name: Save base bundle stats
         id: base-stats
         run: |
-          mkdir -p bundle-stats
+          echo "Analyzing base bundle files..."
+          ls -lh dist/
           for file in dist/*; do
             if [ -f "$file" ]; then
               filename=$(basename "$file")
               size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
               gzip_size=$(gzip -c "$file" | wc -c)
-              echo "$filename,$size,$gzip_size" >> bundle-stats/base-stats.csv
+              echo "$filename,$size,$gzip_size" >> /tmp/bundle-stats/base-stats.csv
+              echo "Saved stats for: $filename"
             fi
           done
+          
+          if [ ! -f /tmp/bundle-stats/base-stats.csv ]; then
+            echo "Error: No bundle files found in dist/"
+            exit 1
+          fi
+          
+          echo "Base stats saved:"
+          cat /tmp/bundle-stats/base-stats.csv
 
       - name: Compare bundle sizes
         id: compare
@@ -88,8 +109,8 @@ jobs:
             return `${sign}${formatSize(diff)}`;
           }
           
-          const prStats = readStats('bundle-stats/pr-stats.csv');
-          const baseStats = readStats('bundle-stats/base-stats.csv');
+          const prStats = readStats('/tmp/bundle-stats/pr-stats.csv');
+          const baseStats = readStats('/tmp/bundle-stats/base-stats.csv');
           
           let comment = '## 📦 Bundle Size Report\n\n';
           comment += '| File | Base Size | PR Size | Diff | Gzipped Base | Gzipped PR | Gzipped Diff |\n';
