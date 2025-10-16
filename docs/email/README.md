@@ -785,10 +785,6 @@ If you hit rate limits frequently:
 - **Batch sending:** Up to 500 emails in single request (Postmark)
 - **Connection pooling:** SMTP supports connection pooling for better performance
 
-## Examples
-
-See [examples directory](../../tests/integration/email/adapters/) for working integration tests with each provider.
-
 ## Support
 
 - [Documentation](https://github.com/praveentcom/basepack#readme)

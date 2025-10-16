@@ -1,5 +1,6 @@
 export * from './cache';
 export * from './email';
+export * from './messaging';
 export * from './storage';
 
 // Export logger utilities explicitly to avoid duplication
