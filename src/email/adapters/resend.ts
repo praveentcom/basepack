@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, ResendConfig, EmailSendConfig } from '../types';
 import { EmailError } from '../errors';
+import type { Logger } from '../../logger';
 
 /**
  * Resend email provider.
@@ -33,17 +34,23 @@ import { EmailError } from '../errors';
 export class ResendProvider implements IEmailProvider {
   readonly name = 'resend';
   private config: Required<ResendConfig>;
+  private logger: Logger;
 
   /**
    * Creates a new Resend provider instance.
    * 
    * @param config - Resend configuration
+   * @param logger - Optional logger for debugging and monitoring
    * @throws {Error} If API key is not provided
    */
-  constructor(config: ResendConfig = {}) {
+  constructor(config: ResendConfig = {}, logger: Logger = console) {
+    this.logger = logger;
+    this.logger.debug('Basepack Email: Initializing provider', { provider: 'resend' });
+    
     const apiKey = config.apiKey ?? process.env.RESEND_API_KEY;
     
     if (!apiKey) {
+      this.logger.error('Basepack Email: Provider API key missing', { provider: 'resend' });
       throw new Error('Resend API key is required. Provide it via config or RESEND_API_KEY environment variable.');
     }
 
@@ -59,11 +66,15 @@ export class ResendProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'resend', count: messages.length });
+
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
+        this.logger.debug('Basepack Email: Provider message sent', { provider: 'resend', messageId: result.messageId });
         results.push(result);
       } catch (error) {
+        this.logger.error('Basepack Email: Provider send failed', { provider: 'resend', to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

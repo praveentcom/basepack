@@ -11,6 +11,7 @@ import {
   PostmarkConfig,
   SMTPConfig
 } from './types';
+import type { Logger } from '../logger';
 import { SESProvider } from './adapters/ses';
 import { MailgunProvider } from './adapters/mailgun';
 import { SendGridProvider } from './adapters/sendgrid';
@@ -97,6 +98,7 @@ import { withRetry } from './retry';
 export class EmailService {
   private primaryProvider: IEmailProvider;
   private backupProviders: IEmailProvider[];
+  private logger: Logger;
 
   /**
    * Creates a new EmailService instance.
@@ -116,12 +118,19 @@ export class EmailService {
    * @see {@link SMTPConfig} - SMTP configuration options
    */
   constructor(config: EmailServiceConfig) {
+    this.logger = config.logger || console;
+    
     // Check if this is a multi-provider config
     if ('primary' in config) {
+      this.logger.debug('Basepack Email: Initializing service', {
+        primary: config.primary.provider,
+        backups: config.backups?.map(b => b.provider) || []
+      });
       this.primaryProvider = this.createProvider(config.primary);
       this.backupProviders = (config.backups || []).map(backup => this.createProvider(backup));
     } else {
       // Single provider configuration (legacy support)
+      this.logger.debug('Basepack Email: Initializing service', { provider: config.provider });
       this.primaryProvider = this.createProvider(config);
       this.backupProviders = [];
     }
@@ -130,17 +139,17 @@ export class EmailService {
   private createProvider(config: SingleProviderConfig): IEmailProvider {
     switch (config.provider) {
       case 'ses':
-        return new SESProvider(config.config || {});
+        return new SESProvider(config.config || {}, this.logger);
       case 'mailgun':
-        return new MailgunProvider(config.config || {});
+        return new MailgunProvider(config.config || {}, this.logger);
       case 'sendgrid':
-        return new SendGridProvider(config.config || {});
+        return new SendGridProvider(config.config || {}, this.logger);
       case 'resend':
-        return new ResendProvider(config.config || {});
+        return new ResendProvider(config.config || {}, this.logger);
       case 'postmark':
-        return new PostmarkProvider(config.config || {});
+        return new PostmarkProvider(config.config || {}, this.logger);
       case 'smtp':
-        return new SMTPProvider(config.config || {});
+        return new SMTPProvider(config.config || {}, this.logger);
       default:
         throw new Error(`Unknown email provider`);
     }
@@ -188,14 +197,27 @@ export class EmailService {
    * ```
    */
   async send(config: EmailSendConfig): Promise<EmailSendResult[]> {
+    const messages = 'message' in config && config.message 
+      ? [config.message] 
+      : config.messages || [];
+    
+    this.logger.info('Basepack Email: Sending message', {
+      messageCount: messages.length,
+      to: messages.map(m => m.to),
+      subject: messages.map(m => m.subject)
+    });
+
     // Validate messages before sending (unless explicitly disabled)
     const shouldValidate = config.opts?.validateBeforeSend !== false;
     if (shouldValidate) {
-      const messages = 'message' in config && config.message 
-        ? [config.message] 
-        : config.messages || [];
-      for (const message of messages) {
-        validateEmailMessage(message);
+      this.logger.debug('Basepack Email: Validating messages', { count: messages.length });
+      try {
+        for (const message of messages) {
+          validateEmailMessage(message);
+        }
+      } catch (error) {
+        this.logger.error('Basepack Email: Validation failed', { error });
+        throw error;
       }
     }
 
@@ -210,10 +232,13 @@ export class EmailService {
 
     for (const provider of providers) {
       try {
+        this.logger.debug('Basepack Email: Attempting send', { provider: provider.name });
+        
         // Use retry logic when sending through each provider
         const results = await withRetry(
           () => provider.send(config),
-          retryOptions
+          retryOptions,
+          this.logger
         );
         
         // Check if send was successful
@@ -221,30 +246,48 @@ export class EmailService {
         
         if (allSuccessful) {
           // Return results if successful
+          this.logger.info('Basepack Email: Message sent successfully', {
+            provider: provider.name,
+            messageCount: results.length,
+            messageIds: results.map(r => r.messageId).filter(Boolean)
+          });
           return results;
         }
         
         // Some failed, record error and continue to next provider
+        const failureError = results.find(r => !r.success)?.error || 'Unknown error';
+        this.logger.error('Basepack Email: Message send failed', { provider: provider.name, error: failureError });
         errors.push({
           provider: provider.name,
-          error: results.find(r => !r.success)?.error || 'Unknown error'
+          error: failureError
         });
       } catch (error) {
         // Provider threw an exception, record it and try next provider
         const emailError = EmailError.from(error, provider.name, true);
+        this.logger.error('Basepack Email: Provider exception', {
+          provider: provider.name,
+          error: emailError.message
+        });
         errors.push({
           provider: provider.name,
           error: emailError.message
         });
+        
+        // If there are backup providers, log failover attempt
+        if (providers.indexOf(provider) < providers.length - 1) {
+          const nextProvider = providers[providers.indexOf(provider) + 1];
+          this.logger.info('Basepack Email: Failing over to backup provider', { 
+            from: provider.name,
+            to: nextProvider.name 
+          });
+        }
       }
     }
 
     // All providers failed
-    throw new EmailProviderError(
-      `All email providers failed. Errors: ${errors.map(e => `${e.provider}: ${e.error}`).join('; ')}`,
-      'all',
-      errors
-    );
+    this.logger.error('Basepack Email: All providers failed', { errors });
+    const errorMessage = `All email providers failed. Errors: ${errors.map(e => `${e.provider}: ${e.error}`).join('; ')}`;
+    throw new EmailProviderError(errorMessage, 'all', errors);
   }
 
   /**

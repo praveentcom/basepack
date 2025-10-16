@@ -116,6 +116,55 @@ docs/
 
 Main [README.md](mdc:README.md) stays minimal and links to service-specific docs.
 
+#### Documentation Organization Rules
+
+**Common patterns and cross-cutting concerns go in the main README only:**
+
+1. **Logging** - Main README has complete logging documentation
+   - Service-specific docs: ❌ No logging sections
+   - Users refer to main README for logging examples
+
+2. **Error Handling** - If error patterns are similar across services
+   - Main README: ✅ General error handling patterns
+   - Service docs: Only service-specific error details
+
+3. **Authentication/Configuration Patterns** - If pattern is consistent
+   - Main README: ✅ Common configuration patterns
+   - Service docs: Provider-specific configuration only
+
+4. **Common Features** (validation, retry logic, health checks)
+   - Main README: ✅ General concepts if applicable to multiple services
+   - Service docs: Service-specific behavior and examples
+
+**Service-specific documentation should include:**
+- Provider setup guides and configuration
+- Service-specific features and capabilities
+- API reference for that service
+- Examples unique to that service
+- Links to main README for common patterns
+
+**Example:**
+```markdown
+<!-- docs/email/README.md -->
+
+## Configuration
+[Service-specific provider configs...]
+
+## Usage Examples
+[Email-specific examples...]
+
+## API Reference
+[EmailService methods...]
+
+<!-- No logging section - users see main README -->
+```
+
+**Benefits:**
+- Single source of truth for common patterns
+- Easier to maintain (update once, not N times)
+- Clearer separation between common and service-specific concerns
+- Reduces documentation bloat
+
 ### Build Output
 
 ```

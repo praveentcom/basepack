@@ -9,12 +9,13 @@ An opinionated library of ready-to-use service utilities for backend application
 
 ## About
 
-Basepack provides production-ready service utilities for Node.js backend applications. Built with TypeScript, it offers multi-provider support with automatic failover, making your backend services more resilient and flexible. It also provides a set of commonly used services like email, cache, logging, etc.
+Basepack provides production-ready service utilities for Node.js backend applications. Built with TypeScript, it offers multi-provider support with automatic failover, making your backend services more resilient and flexible. It includes commonly used services like email, storage, and more.
 
 **Key Features:**
 - Built-in validation
 - Full TypeScript support with comprehensive JSDoc
 - Lightweight with optional peer dependencies
+- Logger injection support for monitoring and debugging
 
 ## Installation
 
@@ -30,10 +31,10 @@ Multi-provider email service with support for popular providers.
 
 **Quick Example:**
 ```typescript
-import { EmailService } from 'basepack';
+import { EmailService, EmailProvider } from 'basepack';
 
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: process.env.SENDGRID_API_KEY }
 });
 
@@ -59,6 +60,92 @@ await service.send({
 | SMTP | `nodemailer` |
 
 **[Complete Email Documentation](./docs/email/README.md)** - Setup guides, configuration, examples, and API reference
+
+### Storage
+
+Multi-provider storage service for file operations with support for S3 and S3-compatible services.
+
+**Quick Example:**
+```typescript
+import { StorageService, StorageProvider } from 'basepack';
+
+const storage = new StorageService({
+  provider: StorageProvider.S3,
+  config: {
+    bucket: 'my-bucket',
+    region: 'us-east-1'
+  }
+});
+
+// Upload a file
+await storage.upload({
+  key: 'documents/report.pdf',
+  data: buffer,
+  contentType: 'application/pdf'
+});
+
+// Generate signed URL
+const result = await storage.getSignedUrl({
+  key: 'documents/report.pdf',
+  expiresIn: 3600
+});
+```
+
+#### Supported Providers
+
+| Provider | Package Required |
+|----------|------------------|
+| AWS S3 | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` |
+
+**[Complete Storage Documentation](./docs/storage/README.md)** - Setup guides, configuration, examples, and API reference
+
+## Logging
+
+All services log to `console` by default. You can customize logging by injecting your own logger or disable it entirely with `noopLogger`.
+
+**Default Behavior (logs to console):**
+```typescript
+import { EmailService } from 'basepack';
+
+// Logs to console by default
+const service = new EmailService({
+  provider: 'sendgrid',
+  config: { apiKey: process.env.SENDGRID_API_KEY }
+});
+// Output: Basepack Email: Initializing service { provider: 'sendgrid' }
+```
+
+**Disable Logging:**
+```typescript
+import { EmailService, noopLogger } from 'basepack';
+
+const service = new EmailService({
+  provider: 'sendgrid',
+  config: { apiKey: process.env.SENDGRID_API_KEY },
+  logger: noopLogger  // Silent - no logs
+});
+```
+
+**Use Custom Logger (Pino):**
+```typescript
+import { EmailService, wrapPino } from 'basepack';
+import pino from 'pino';
+
+const logger = wrapPino(pino({ level: 'debug' }));
+
+const service = new EmailService({
+  provider: 'sendgrid',
+  config: { apiKey: process.env.SENDGRID_API_KEY },
+  logger
+});
+```
+
+**Supported logger wrappers:**
+- `wrapPino(pinoLogger)` - Pino logger
+- `wrapWinston(winstonLogger)` - Winston logger
+- `wrapBunyan(bunyanLogger)` - Bunyan logger
+- `noopLogger` - Silent logger (no output)
+- Or implement the simple `Logger` interface for any other logger
 
 ## Requirements
 
@@ -105,3 +192,4 @@ See [LICENSE](./LICENSE) for details.
 - [Issue Tracker](https://github.com/praveentcom/basepack/issues)
 - [Changelog](./CHANGELOG.md)
 - [Email Service Documentation](./docs/email/README.md)
+- [Storage Service Documentation](./docs/storage/README.md)

@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SESConfig, EmailSendConfig } from '../types';
 import { EmailError } from '../errors';
+import type { Logger } from '../../logger';
 
 /**
  * AWS SES (Simple Email Service) email provider.
@@ -37,14 +38,19 @@ export class SESProvider implements IEmailProvider {
   readonly name = 'ses';
   private options: SESConfig;
   private client: any;
+  private logger: Logger;
 
   /**
    * Creates a new SES provider instance.
    * 
    * @param options - SES configuration options
+   * @param logger - Optional logger for debugging and monitoring
    * @throws {Error} If @aws-sdk/client-ses package is not installed
    */
-  constructor(options: SESConfig = {}) {
+  constructor(options: SESConfig = {}, logger: Logger = console) {
+    this.logger = logger;
+    this.logger.debug('Basepack Email: Initializing provider', { provider: 'ses', region: options.region });
+    
     try {
       const { SESClient } = require('@aws-sdk/client-ses');
       
@@ -66,6 +72,7 @@ export class SESProvider implements IEmailProvider {
         endpoint: this.options.endpoint,
       });
     } catch (error) {
+      this.logger.error('Failed to initialize SES provider', error);
       throw new Error(
         'AWS SDK for SES is not installed. Install it with: npm install @aws-sdk/client-ses'
       );
@@ -78,11 +85,15 @@ export class SESProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'ses', count: messages.length });
+
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
+        this.logger.debug('Basepack Email: Provider message sent', { provider: 'ses', messageId: result.messageId });
         results.push(result);
       } catch (error) {
+        this.logger.error('Basepack Email: Provider send failed', { provider: 'ses', to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

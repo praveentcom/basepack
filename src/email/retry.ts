@@ -1,4 +1,5 @@
 import { EmailError } from './errors';
+import type { Logger } from '../logger';
 
 /**
  * Configuration options for retry behavior.
@@ -89,6 +90,7 @@ function isRetryableError(error: unknown): boolean {
  * 
  * @param fn - Async function to retry
  * @param options - Retry configuration options
+ * @param logger - Optional logger for logging retry attempts
  * @returns The result of the function if successful
  * @throws The last error if all retry attempts are exhausted
  * 
@@ -110,7 +112,8 @@ function isRetryableError(error: unknown): boolean {
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
+  logger: Logger = console
 ): Promise<T> {
   const opts = { ...DEFAULT_RETRY_OPTIONS, ...options };
   let lastError: unknown;
@@ -123,16 +126,24 @@ export async function withRetry<T>(
 
       // Don't retry if this is the last attempt
       if (attempt === opts.retries) {
+        logger.debug('Basepack Email: Max retries reached', { attempt: attempt + 1, error });
         break;
       }
 
       // Don't retry if error is not retryable
       if (!isRetryableError(error)) {
+        logger.debug('Basepack Email: Error not retryable', { error });
         break;
       }
 
       // Calculate delay and wait
       const delay = calculateDelay(attempt, opts);
+      logger.info('Basepack Email: Retrying operation', {
+        attempt: attempt + 1,
+        maxRetries: opts.retries + 1,
+        delayMs: delay,
+        error: error instanceof Error ? error.message : String(error)
+      });
       opts.onRetry(error instanceof Error ? error : new Error(String(error)), attempt + 1);
       await sleep(delay);
     }

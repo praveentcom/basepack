@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailBaseOptions, EmailSendResult, EmailHealthInfo, SendGridConfig, EmailSendConfig } from '../types';
 import { EmailError } from '../errors';
+import type { Logger } from '../../logger';
 
 /**
  * SendGrid email provider.
@@ -33,17 +34,23 @@ import { EmailError } from '../errors';
 export class SendGridProvider implements IEmailProvider {
   readonly name = 'sendgrid';
   private config: Required<SendGridConfig>;
+  private logger: Logger;
 
   /**
    * Creates a new SendGrid provider instance.
    * 
    * @param config - SendGrid configuration
+   * @param logger - Optional logger for debugging and monitoring
    * @throws {Error} If API key is not provided
    */
-  constructor(config: SendGridConfig = {}) {
+  constructor(config: SendGridConfig = {}, logger: Logger = console) {
+    this.logger = logger;
+    this.logger.debug('Basepack Email: Initializing provider', { provider: 'sendgrid' });
+    
     const apiKey = config.apiKey ?? process.env.SENDGRID_API_KEY;
     
     if (!apiKey) {
+      this.logger.error('Basepack Email: Provider API key missing', { provider: 'sendgrid' });
       throw new Error('SendGrid API key is required. Provide it via config or SENDGRID_API_KEY environment variable.');
     }
 
@@ -59,11 +66,15 @@ export class SendGridProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'sendgrid', count: messages.length });
+
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
+        this.logger.debug('Basepack Email: Provider message sent', { provider: 'sendgrid', messageId: result.messageId });
         results.push(result);
       } catch (error) {
+        this.logger.error('Basepack Email: Provider send failed', { provider: 'sendgrid', to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, MailgunConfig, EmailSendConfig } from '../types';
 import { EmailError } from '../errors';
+import type { Logger } from '../../logger';
 
 /**
  * Mailgun email provider.
@@ -36,23 +37,30 @@ import { EmailError } from '../errors';
 export class MailgunProvider implements IEmailProvider {
   readonly name = 'mailgun';
   private config: Required<MailgunConfig>;
+  private logger: Logger;
 
   /**
    * Creates a new Mailgun provider instance.
    * 
    * @param config - Mailgun configuration
+   * @param logger - Optional logger for debugging and monitoring
    * @throws {Error} If API key or domain is not provided
    */
-  constructor(config: MailgunConfig = {}) {
+  constructor(config: MailgunConfig = {}, logger: Logger = console) {
+    this.logger = logger;
+    this.logger.debug('Basepack Email: Initializing provider', { provider: 'mailgun', region: config.region });
+    
     const apiKey = config.apiKey ?? process.env.MAILGUN_API_KEY;
     const domain = config.domain ?? process.env.MAILGUN_DOMAIN;
     const region = (config.region ?? process.env.MAILGUN_REGION ?? 'us') as 'us' | 'eu';
     
     if (!apiKey) {
+      this.logger.error('Basepack Email: Provider API key missing', { provider: 'mailgun' });
       throw new Error('Mailgun API key is required. Provide it via config or MAILGUN_API_KEY environment variable.');
     }
     
     if (!domain) {
+      this.logger.error('Basepack Email: Provider domain missing', { provider: 'mailgun' });
       throw new Error('Mailgun domain is required. Provide it via config or MAILGUN_DOMAIN environment variable.');
     }
 
@@ -70,11 +78,15 @@ export class MailgunProvider implements IEmailProvider {
       : config.messages || [];
     const results: EmailSendResult[] = [];
 
+    this.logger.debug('Basepack Email: Provider sending messages', { provider: 'mailgun', count: messages.length });
+
     for (const message of messages) {
       try {
         const result = await this.sendSingleMessage(message);
+        this.logger.debug('Basepack Email: Provider message sent', { provider: 'mailgun', messageId: result.messageId });
         results.push(result);
       } catch (error) {
+        this.logger.error('Basepack Email: Provider send failed', { provider: 'mailgun', to: message.to, error });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

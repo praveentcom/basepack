@@ -47,6 +47,38 @@ export type EmailProviderType = typeof EMAIL_PROVIDERS[number];
 export type EmailProviderType = 'ses' | 'sendgrid' | 'mailgun';
 ```
 
+### Enums
+
+Use enums for sets of named constants, especially for values exposed in public APIs:
+
+```typescript
+// Good - provides autocomplete and type safety
+export enum EmailProvider {
+  SES = 'ses',
+  SENDGRID = 'sendgrid',
+  MAILGUN = 'mailgun',
+  RESEND = 'resend',
+  POSTMARK = 'postmark',
+  SMTP = 'smtp'
+}
+
+// Usage
+const service = new EmailService({
+  provider: EmailProvider.SENDGRID,
+  config: { apiKey: 'key' }
+});
+```
+
+**When to use enums:**
+- Public API values that users will reference frequently
+- Provider names, service types, operation types
+- Values that benefit from IDE autocomplete
+
+**When to use const assertions:**
+- Internal constant arrays
+- Values primarily used within the library
+- When you need both the array and the type
+
 ### Type Guards
 
 Always create type guards for runtime type checking:

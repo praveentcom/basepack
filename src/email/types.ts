@@ -1,4 +1,11 @@
 /**
+ * Email service types and interfaces
+ * @module email/types
+ */
+
+import type { Logger } from '../logger/types';
+
+/**
  * Optional configuration for email sending operations.
  */
 export interface EmailBaseOptions {
@@ -188,6 +195,28 @@ export interface IEmailProvider {
 }
 
 /**
+ * Email provider enum
+ * 
+ * @example
+ * ```typescript
+ * import { EmailProvider } from 'basepack';
+ * 
+ * const service = new EmailService({
+ *   provider: EmailProvider.SENDGRID,
+ *   config: { apiKey: 'key' }
+ * });
+ * ```
+ */
+export enum EmailProvider {
+  SES = 'ses',
+  SENDGRID = 'sendgrid',
+  MAILGUN = 'mailgun',
+  RESEND = 'resend',
+  POSTMARK = 'postmark',
+  SMTP = 'smtp'
+}
+
+/**
  * Supported email provider types.
  */
 export const EMAIL_PROVIDERS = ['ses', 'sendgrid', 'mailgun', 'resend', 'postmark', 'smtp'] as const;
@@ -362,13 +391,22 @@ export type SingleProviderConfig =
  *     { provider: 'smtp', config: { host: 'smtp.gmail.com', port: 587 } }
  *   ]
  * };
+ * 
+ * // With logging
+ * const config: EmailServiceConfig = {
+ *   provider: 'ses',
+ *   config: { region: 'us-east-1' },
+ *   logger: console
+ * };
  * ```
  */
 export type EmailServiceConfig = 
-  | SingleProviderConfig
+  | (SingleProviderConfig & { logger?: Logger })
   | {
       /** Primary email provider to use first */
       primary: SingleProviderConfig;
       /** Optional backup providers for automatic failover */
       backups?: SingleProviderConfig[];
+      /** Optional logger for debugging and monitoring */
+      logger?: Logger;
     };

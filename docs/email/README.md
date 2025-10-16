@@ -38,10 +38,10 @@ npm install nodemailer
 ### Single Provider
 
 ```typescript
-import { EmailService } from 'basepack';
+import { EmailService, EmailProvider } from 'basepack';
 
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: process.env.SENDGRID_API_KEY }
 });
 
@@ -60,10 +60,10 @@ await service.send({
 
 ```typescript
 const service = new EmailService({
-  primary: { provider: 'ses', config: { region: 'us-east-1' } },
+  primary: { provider: EmailProvider.SES, config: { region: 'us-east-1' } },
   backups: [
-    { provider: 'sendgrid', config: { apiKey: process.env.SENDGRID_API_KEY } },
-    { provider: 'smtp', config: { 
+    { provider: EmailProvider.SENDGRID, config: { apiKey: process.env.SENDGRID_API_KEY } },
+    { provider: EmailProvider.SMTP, config: { 
       host: 'smtp.gmail.com', 
       port: 587,
       auth: { user: 'user@gmail.com', pass: 'password' }
@@ -93,7 +93,7 @@ All providers support both programmatic configuration and environment variables.
 
 ```typescript
 const service = new EmailService({
-  provider: 'ses',
+  provider: EmailProvider.SES,
   config: {
     region: 'us-east-1',           // AWS region
     accessKeyId: 'YOUR_KEY',       // AWS credentials
@@ -119,7 +119,7 @@ const service = new EmailService({
 
 ```typescript
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: {
     apiKey: 'YOUR_SENDGRID_API_KEY',
     endpoint: 'https://api.sendgrid.com/v3' // Optional
@@ -138,7 +138,7 @@ const service = new EmailService({
 
 ```typescript
 const service = new EmailService({
-  provider: 'mailgun',
+  provider: EmailProvider.MAILGUN,
   config: {
     apiKey: 'YOUR_MAILGUN_API_KEY',
     domain: 'your-domain.com',
@@ -160,7 +160,7 @@ const service = new EmailService({
 
 ```typescript
 const service = new EmailService({
-  provider: 'resend',
+  provider: EmailProvider.RESEND,
   config: {
     apiKey: 'YOUR_RESEND_API_KEY'
   }
@@ -178,7 +178,7 @@ const service = new EmailService({
 
 ```typescript
 const service = new EmailService({
-  provider: 'postmark',
+  provider: EmailProvider.POSTMARK,
   config: {
     serverToken: 'YOUR_POSTMARK_SERVER_TOKEN'
   }
@@ -198,7 +198,7 @@ const service = new EmailService({
 
 ```typescript
 const service = new EmailService({
-  provider: 'smtp',
+  provider: EmailProvider.SMTP,
   config: {
     host: 'smtp.gmail.com',
     port: 587,
@@ -417,7 +417,7 @@ TypeScript provides intelligent autocomplete based on the provider:
 
 ```typescript
 const service = new EmailService({
-  provider: 'mailgun',
+  provider: EmailProvider.MAILGUN,
   config: {
     // TypeScript autocompletes: apiKey, domain, region, endpoint
     apiKey: '...',
@@ -428,7 +428,7 @@ const service = new EmailService({
 
 // Different provider = different config fields
 const service2 = new EmailService({
-  provider: 'ses',
+  provider: EmailProvider.SES,
   config: {
     // TypeScript autocompletes: region, accessKeyId, secretAccessKey, etc.
     region: 'us-east-1'
@@ -467,7 +467,7 @@ new EmailService(config: EmailServiceConfig)
 **Single Provider:**
 ```typescript
 {
-  provider: 'ses' | 'sendgrid' | 'mailgun' | 'resend' | 'postmark' | 'smtp',
+  provider: EmailProvider, // or 'ses' | 'sendgrid' | 'mailgun' | 'resend' | 'postmark' | 'smtp'
   config?: ProviderConfig
 }
 ```
@@ -668,13 +668,13 @@ Avoid hardcoding credentials:
 ```typescript
 // Recommended
 const service = new EmailService({
-  provider: 'sendgrid'
+  provider: EmailProvider.SENDGRID
   // Reads from SENDGRID_API_KEY environment variable
 });
 
 // Not recommended
 const service = new EmailService({
-  provider: 'sendgrid',
+  provider: EmailProvider.SENDGRID,
   config: { apiKey: 'SG.hardcoded-key' }
 });
 ```
@@ -698,8 +698,8 @@ For critical transactional emails, configure backup providers:
 
 ```typescript
 const service = new EmailService({
-  primary: { provider: 'ses' },
-  backups: [{ provider: 'sendgrid' }]
+  primary: { provider: EmailProvider.SES },
+  backups: [{ provider: EmailProvider.SENDGRID }]
 });
 ```
 
