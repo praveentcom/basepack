@@ -29,4 +29,8 @@ export const credentialCheckers = {
   sns: () => hasCredentials('SNS', ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION']),
   twilio: () => hasCredentials('Twilio', ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']),
   meta: () => hasCredentials('Meta', ['META_ACCESS_TOKEN', 'META_PHONE_NUMBER_ID']),
+  msg91: () => hasCredentials('MSG91', ['MSG91_AUTH_KEY', 'MSG91_SENDER_ID', 'MSG91_FLOW_ID']),
+  vonage: () => hasCredentials('Vonage', ['VONAGE_API_KEY', 'VONAGE_API_SECRET']),
+  plivo: () => hasCredentials('Plivo', ['PLIVO_AUTH_ID', 'PLIVO_AUTH_TOKEN']),
+  messagebird: () => hasCredentials('MessageBird', ['MESSENGERBIRD_ACCESS_KEY']),
 };

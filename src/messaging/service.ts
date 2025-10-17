@@ -15,12 +15,20 @@ import type {
   TwilioConfig,
   SNSConfig,
   MetaConfig,
+  MSG91Config,
+  VonageConfig,
+  PlivoConfig,
+  MessageBirdConfig,
 } from "./types";
 import { MessagingProvider } from "./types";
 import type { Logger } from "../logger";
 import { TwilioProvider } from "./adapters/twilio";
 import { SNSProvider } from "./adapters/sns";
 import { MetaProvider } from "./adapters/meta";
+import { MSG91Provider } from "./adapters/msg91";
+import { VonageProvider } from "./adapters/vonage";
+import { PlivoProvider } from "./adapters/plivo";
+import { MessageBirdProvider } from "./adapters/messagebird";
 import {
   validateSMSMessage,
   validateWhatsAppMessage,
@@ -33,13 +41,8 @@ import { consoleLogger } from "../logger";
 /**
  * Messaging service with multi-provider support and automatic failover.
  *
- * Supports multiple messaging providers (Twilio, AWS SNS, Meta Business) with automatic
+ * Supports multiple messaging providers (Twilio, AWS SNS, Meta Business, MSG91, Vonage, Plivo, MessageBird) with automatic
  * failover to backup providers if the primary fails.
- *
- * Provides separate methods for different messaging channels:
- * - SMS (Twilio, AWS SNS)
- * - WhatsApp (Twilio, Meta Business)
- * - RCS (Twilio only, limited support)
  *
  * @example Single provider - Twilio
  * ```typescript
@@ -57,6 +60,50 @@ import { consoleLogger } from "../logger";
  * const service = new MessagingService({
  *   provider: MessagingProvider.SNS,
  *   config: { region: 'us-east-1' }
+ * });
+ * ```
+ *
+ * @example Single provider - MSG91
+ * ```typescript
+ * const service = new MessagingService({
+ *   provider: MessagingProvider.MSG91,
+ *   config: {
+ *     authKey: process.env.MSG91_AUTH_KEY,
+ *     senderId: 'YOUR_SENDER_ID',
+ *     flowId: 'YOUR_FLOW_ID'
+ *   }
+ * });
+ * ```
+ *
+ * @example Single provider - Vonage
+ * ```typescript
+ * const service = new MessagingService({
+ *   provider: MessagingProvider.VONAGE,
+ *   config: {
+ *     apiKey: process.env.VONAGE_API_KEY,
+ *     apiSecret: process.env.VONAGE_API_SECRET
+ *   }
+ * });
+ * ```
+ *
+ * @example Single provider - Plivo
+ * ```typescript
+ * const service = new MessagingService({
+ *   provider: MessagingProvider.PLIVO,
+ *   config: {
+ *     authId: process.env.PLIVO_AUTH_ID,
+ *     authToken: process.env.PLIVO_AUTH_TOKEN
+ *   }
+ * });
+ * ```
+ *
+ * @example Single provider - MessageBird
+ * ```typescript
+ * const service = new MessagingService({
+ *   provider: MessagingProvider.MESSENGERBIRD,
+ *   config: {
+ *     accessKey: process.env.MESSENGERBIRD_ACCESS_KEY
+ *   }
  * });
  * ```
  *
@@ -82,16 +129,20 @@ export class MessagingService {
    * - `twilio`: No additional packages (uses fetch)
    * - `sns`: Requires `@aws-sdk/client-sns` package
    * - `meta`: No additional packages (uses fetch)
-   *
-   * **Provider Capabilities:**
-   * - Twilio: SMS, WhatsApp, RCS (limited), status tracking
-   * - SNS: SMS only
-   * - Meta Business: WhatsApp only, status tracking, media attachments, templates
+   * - `msg91`: No additional packages (uses fetch)
+   * - `vonage`: No additional packages (uses fetch)
+   * - `plivo`: No additional packages (uses fetch)
+   * - `messagebird`: No additional packages (uses fetch)
    *
    * @param config - Service configuration with primary and optional backup providers
    * @throws {Error} If provider configuration is invalid or required dependencies are missing
    * @see {@link TwilioConfig} - Twilio configuration options
    * @see {@link SNSConfig} - AWS SNS configuration options
+   * @see {@link MetaConfig} - Meta configuration options
+   * @see {@link MSG91Config} - MSG91 configuration options
+   * @see {@link VonageConfig} - Vonage configuration options
+   * @see {@link PlivoConfig} - Plivo configuration options
+   * @see {@link MessageBirdConfig} - MessageBird configuration options
    */
   constructor(config: MessagingServiceConfig) {
     this.logger = config.logger || consoleLogger();
@@ -126,6 +177,14 @@ export class MessagingService {
         return new SNSProvider(config.config || {}, this.logger);
       case MessagingProvider.META:
         return new MetaProvider(config.config || {}, this.logger);
+      case MessagingProvider.MSG91:
+        return new MSG91Provider(config.config || {}, this.logger);
+      case MessagingProvider.VONAGE:
+        return new VonageProvider(config.config || {}, this.logger);
+      case MessagingProvider.PLIVO:
+        return new PlivoProvider(config.config || {}, this.logger);
+      case MessagingProvider.MESSENGERBIRD:
+        return new MessageBirdProvider(config.config || {}, this.logger);
     }
   }
 
@@ -322,11 +381,6 @@ export class MessagingService {
 
   /**
    * Gets the delivery status of a message.
-   *
-   * Note: Not all providers support status tracking.
-   * - Twilio: Supported
-   * - SNS: Not supported (returns null)
-   * - Meta Business: Supported
    *
    * @param messageId - Message ID to check
    * @param providerName - Optional provider name to check (defaults to primary)

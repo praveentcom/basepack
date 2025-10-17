@@ -284,6 +284,10 @@ export enum MessagingProvider {
   TWILIO = "twilio",
   SNS = "sns",
   META = "meta",
+  MSG91 = "msg91",
+  VONAGE = "vonage",
+  PLIVO = "plivo",
+  MESSENGERBIRD = "messagebird",
 }
 
 /**
@@ -340,6 +344,72 @@ export interface MetaConfig {
 }
 
 /**
+ * MSG91 messaging service configuration.
+ * Requires: Auth key from MSG91 dashboard
+ *
+ * @see https://docs.msg91.com/
+ */
+export interface MSG91Config {
+  /** MSG91 Auth key (or set MSG91_AUTH_KEY env var) */
+  authKey?: string;
+  /** Default sender ID (or set MSG91_SENDER_ID env var) */
+  senderId?: string;
+  /** Default flow ID for SMS templates (or set MSG91_FLOW_ID env var) */
+  flowId?: string;
+  /** Custom API endpoint (default: https://control.msg91.com) */
+  endpoint?: string;
+  /** Default country code for numbers without country code (default: 91) */
+  defaultCountryCode?: string;
+}
+
+/**
+ * Vonage messaging service configuration.
+ * Requires: API key and secret from Vonage dashboard
+ *
+ * @see https://developer.vonage.com/en/getting-started
+ */
+export interface VonageConfig {
+  /** Vonage API key (or set VONAGE_API_KEY env var) */
+  apiKey?: string;
+  /** Vonage API secret (or set VONAGE_API_SECRET env var) */
+  apiSecret?: string;
+  /** Vonage application ID for WhatsApp (or set VONAGE_APPLICATION_ID env var) */
+  applicationId?: string;
+  /** Vonage private key for WhatsApp (or set VONAGE_PRIVATE_KEY env var) */
+  privateKey?: string;
+  /** Custom API endpoint (default: https://rest.nexmo.com) */
+  endpoint?: string;
+}
+
+/**
+ * Plivo messaging service configuration.
+ * Requires: Auth ID and Auth Token from Plivo dashboard
+ *
+ * @see https://www.plivo.com/docs/messaging/
+ */
+export interface PlivoConfig {
+  /** Plivo Auth ID (or set PLIVO_AUTH_ID env var) */
+  authId?: string;
+  /** Plivo Auth Token (or set PLIVO_AUTH_TOKEN env var) */
+  authToken?: string;
+  /** Custom API endpoint (default: https://api.plivo.com) */
+  endpoint?: string;
+}
+
+/**
+ * MessageBird messaging service configuration.
+ * Requires: Access Key from MessageBird dashboard
+ *
+ * @see https://developers.messagebird.com/
+ */
+export interface MessageBirdConfig {
+  /** MessageBird API access key (or set MESSENGERBIRD_ACCESS_KEY env var) */
+  accessKey?: string;
+  /** Custom API endpoint (default: https://api.messagebird.com) */
+  endpoint?: string;
+}
+
+/**
  * Configuration for a single messaging provider.
  *
  * @example
@@ -353,7 +423,11 @@ export interface MetaConfig {
 export type MessagingSingleProviderConfig =
   | { provider: MessagingProvider.TWILIO; config?: TwilioConfig }
   | { provider: MessagingProvider.SNS; config?: SNSConfig }
-  | { provider: MessagingProvider.META; config?: MetaConfig };
+  | { provider: MessagingProvider.META; config?: MetaConfig }
+  | { provider: MessagingProvider.MSG91; config?: MSG91Config }
+  | { provider: MessagingProvider.VONAGE; config?: VonageConfig }
+  | { provider: MessagingProvider.PLIVO; config?: PlivoConfig }
+  | { provider: MessagingProvider.MESSENGERBIRD; config?: MessageBirdConfig };
 
 /**
  * MessagingService configuration with optional backup providers for automatic failover.
