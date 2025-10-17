@@ -540,20 +540,6 @@ if (health.backups[0]?.health.ok) {
 }
 ```
 
-## Provider Comparison
-
-| Feature | Twilio | AWS SNS | Meta Business |
-|---------|--------|---------|---------------|
-| SMS | ✅ | ✅ | ❌ |
-| WhatsApp | ✅ | ❌ | ✅ |
-| RCS | ✅ (limited) | ❌ | ❌ |
-| Media Attachments | ✅ | ❌ | ✅ |
-| Status Tracking | ✅ | ❌ | ✅ |
-| Templates | ✅ | ❌ | ✅ |
-| International SMS | ✅ | ✅ | ❌ |
-| Pricing | Pay per message | Pay per message | Pay per message |
-| Setup Complexity | Medium | Low (if using AWS) | High |
-
 ## API Reference
 
 ### MessagingService
