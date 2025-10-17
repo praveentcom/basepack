@@ -40,3 +40,33 @@ export const createTestBuffer = (content: string = 'Test file content'): Buffer 
  */
 export const TEST_FILE_CONTENT = 'This is a test file from Basepack integration tests.';
 
+/**
+ * Check if required credentials are configured
+ * 
+ * @param provider - Storage provider name
+ * @param requiredEnvVars - Array of required environment variable names
+ * @returns True if credentials are configured, false otherwise
+ */
+export const hasCredentials = (provider: string, requiredEnvVars: string[]): boolean => {
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.warn(`Skipping ${provider} integration tests - missing environment variables: ${missingVars.join(', ')}`);
+    return false;
+  }
+  
+  return true;
+};
+
+/**
+ * Provider-specific credential checkers
+ */
+export const credentialCheckers = {
+  s3: () => hasCredentials('S3', ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_BUCKET']),
+  gcs: () => hasCredentials('GCS', ['GCS_PROJECT_ID', 'GCS_KEY_FILE', 'GCS_BUCKET']),
+  azure: () => hasCredentials('Azure', ['AZURE_STORAGE_ACCOUNT', 'AZURE_STORAGE_KEY']),
+  b2: () => hasCredentials('B2', ['B2_APPLICATION_KEY_ID', 'B2_APPLICATION_KEY', 'B2_BUCKET_NAME']),
+  oss: () => hasCredentials('OSS', ['OSS_ACCESS_KEY_ID', 'OSS_ACCESS_KEY_SECRET', 'OSS_BUCKET', 'OSS_REGION']),
+  r2: () => hasCredentials('R2', ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_R2_ACCESS_KEY', 'CLOUDFLARE_R2_SECRET_KEY', 'CLOUDFLARE_R2_BUCKET']),
+};
+

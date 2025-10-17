@@ -1,8 +1,16 @@
 import { EmailService } from '../../../../src/email/service';
 import { EmailProvider } from '../../../../src/email/types';
-import { getTestEmail } from '../test-utils';
+import { getTestEmail, credentialCheckers } from '../test-utils';
 
-describe('Postmark Provider', () => {
+const hasCredentials = credentialCheckers.postmark();
+
+describe(hasCredentials ? 'Postmark Provider' : 'Postmark Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping Postmark integration tests - missing credentials', () => {});
+    return;
+  }
+
   it('should send email via Postmark', async () => {
     const service = new EmailService({
       provider: EmailProvider.POSTMARK,

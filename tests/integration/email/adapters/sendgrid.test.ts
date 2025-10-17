@@ -1,8 +1,16 @@
 import { EmailService } from '../../../../src/email/service';
 import { EmailProvider } from '../../../../src/email/types';
-import { getTestEmail } from '../test-utils';
+import { getTestEmail, credentialCheckers } from '../test-utils';
 
-describe('SendGrid Provider', () => {
+const hasCredentials = credentialCheckers.sendgrid();
+
+describe(hasCredentials ? 'SendGrid Provider' : 'SendGrid Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping SendGrid integration tests - missing credentials', () => {});
+    return;
+  }
+
   it('should send email via SendGrid', async () => {
     const service = new EmailService({
       provider: EmailProvider.SENDGRID,

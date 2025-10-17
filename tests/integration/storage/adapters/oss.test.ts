@@ -4,9 +4,18 @@ import {
   generateTestKey,
   createTestBuffer,
   TEST_FILE_CONTENT,
+  credentialCheckers,
 } from '../test-utils';
 
-describe('Alibaba Cloud OSS Provider', () => {
+const hasCredentials = credentialCheckers.oss();
+
+describe(hasCredentials ? 'Alibaba Cloud OSS Provider' : 'Alibaba Cloud OSS Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping OSS integration tests - missing credentials', () => {});
+    return;
+  }
+
   let service: StorageService;
   let uploadedKey: string;
 

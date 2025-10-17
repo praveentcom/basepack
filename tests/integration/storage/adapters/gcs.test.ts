@@ -5,9 +5,18 @@ import {
   generateTestKey,
   createTestBuffer,
   TEST_FILE_CONTENT,
+  credentialCheckers,
 } from '../test-utils';
 
-describe('GCS Provider', () => {
+const hasCredentials = credentialCheckers.gcs();
+
+describe(hasCredentials ? 'GCS Provider' : 'GCS Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping GCS integration tests - missing credentials', () => {});
+    return;
+  }
+
   let service: StorageService;
   const testBucket = getTestBucket('GCS');
   let uploadedKey: string;

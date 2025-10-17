@@ -4,9 +4,18 @@ import {
   generateTestKey,
   createTestBuffer,
   TEST_FILE_CONTENT,
+  credentialCheckers,
 } from '../test-utils';
 
-describe('Cloudflare R2 Provider', () => {
+const hasCredentials = credentialCheckers.r2();
+
+describe(hasCredentials ? 'Cloudflare R2 Provider' : 'Cloudflare R2 Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping R2 integration tests - missing credentials', () => {});
+    return;
+  }
+
   let service: StorageService;
   let uploadedKey: string;
 

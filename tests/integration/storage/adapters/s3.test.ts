@@ -5,9 +5,18 @@ import {
   generateTestKey,
   createTestBuffer,
   TEST_FILE_CONTENT,
+  credentialCheckers,
 } from '../test-utils';
 
-describe('S3 Provider', () => {
+const hasCredentials = credentialCheckers.s3();
+
+describe(hasCredentials ? 'S3 Provider' : 'S3 Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping S3 integration tests - missing credentials', () => {});
+    return;
+  }
+
   let service: StorageService;
   const testBucket = getTestBucket();
   let uploadedKey: string;

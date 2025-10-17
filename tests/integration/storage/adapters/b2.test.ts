@@ -4,9 +4,18 @@ import {
   generateTestKey,
   createTestBuffer,
   TEST_FILE_CONTENT,
+  credentialCheckers,
 } from '../test-utils';
 
-describe('Backblaze B2 Provider', () => {
+const hasCredentials = credentialCheckers.b2();
+
+describe(hasCredentials ? 'Backblaze B2 Provider' : 'Backblaze B2 Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping B2 integration tests - missing credentials', () => {});
+    return;
+  }
+
   let service: StorageService;
   let uploadedKey: string;
 

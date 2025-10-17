@@ -14,27 +14,33 @@ import type {
   MessageStatus,
   TwilioConfig,
   SNSConfig,
-} from './types';
-import { MessagingProvider } from './types';
-import type { Logger } from '../logger';
-import { TwilioProvider } from './adapters/twilio';
-import { SNSProvider } from './adapters/sns';
-import { validateSMSMessage, validateWhatsAppMessage, validateRCSMessage } from './validation';
-import { MessagingError, MessagingProviderError } from './errors';
-import { withRetry } from './retry';
-import { consoleLogger } from '../logger';
+  MetaConfig,
+} from "./types";
+import { MessagingProvider } from "./types";
+import type { Logger } from "../logger";
+import { TwilioProvider } from "./adapters/twilio";
+import { SNSProvider } from "./adapters/sns";
+import { MetaProvider } from "./adapters/meta";
+import {
+  validateSMSMessage,
+  validateWhatsAppMessage,
+  validateRCSMessage,
+} from "./validation";
+import { MessagingError, MessagingProviderError } from "./errors";
+import { withRetry } from "./retry";
+import { consoleLogger } from "../logger";
 
 /**
  * Messaging service with multi-provider support and automatic failover.
- * 
- * Supports multiple messaging providers (Twilio, AWS SNS) with automatic 
+ *
+ * Supports multiple messaging providers (Twilio, AWS SNS, Meta Business) with automatic
  * failover to backup providers if the primary fails.
- * 
+ *
  * Provides separate methods for different messaging channels:
- * - SMS (all providers)
- * - WhatsApp (Twilio only)
+ * - SMS (Twilio, AWS SNS)
+ * - WhatsApp (Twilio, Meta Business)
  * - RCS (Twilio only, limited support)
- * 
+ *
  * @example Single provider - Twilio
  * ```typescript
  * const service = new MessagingService({
@@ -45,7 +51,7 @@ import { consoleLogger } from '../logger';
  *   }
  * });
  * ```
- * 
+ *
  * @example Single provider - AWS SNS
  * ```typescript
  * const service = new MessagingService({
@@ -53,7 +59,7 @@ import { consoleLogger } from '../logger';
  *   config: { region: 'us-east-1' }
  * });
  * ```
- * 
+ *
  * @example With automatic failover
  * ```typescript
  * const service = new MessagingService({
@@ -71,15 +77,17 @@ export class MessagingService {
 
   /**
    * Creates a new MessagingService instance.
-   * 
+   *
    * **Provider-Specific Requirements:**
    * - `twilio`: No additional packages (uses fetch)
    * - `sns`: Requires `@aws-sdk/client-sns` package
-   * 
+   * - `meta`: No additional packages (uses fetch)
+   *
    * **Provider Capabilities:**
    * - Twilio: SMS, WhatsApp, RCS (limited), status tracking
    * - SNS: SMS only
-   * 
+   * - Meta Business: WhatsApp only, status tracking, media attachments, templates
+   *
    * @param config - Service configuration with primary and optional backup providers
    * @throws {Error} If provider configuration is invalid or required dependencies are missing
    * @see {@link TwilioConfig} - Twilio configuration options
@@ -87,44 +95,52 @@ export class MessagingService {
    */
   constructor(config: MessagingServiceConfig) {
     this.logger = config.logger || consoleLogger();
-    
+
     // Check if this is a multi-provider config
-    if ('primary' in config) {
-      this.logger.debug('Basepack Messaging: Initializing service', {
+    if ("primary" in config) {
+      this.logger.debug("Basepack Messaging: Initializing service", {
         primary: config.primary.provider,
-        backups: config.backups?.map(b => b.provider) || []
+        backups: config.backups?.map((b) => b.provider) || [],
       });
       this.primaryProvider = this.createProvider(config.primary);
-      this.backupProviders = (config.backups || []).map(backup => this.createProvider(backup));
+      this.backupProviders = (config.backups || []).map((backup) =>
+        this.createProvider(backup),
+      );
     } else {
       // Single provider configuration
-      this.logger.debug('Basepack Messaging: Initializing service', { provider: config.provider });
+      this.logger.debug("Basepack Messaging: Initializing service", {
+        provider: config.provider,
+      });
       this.primaryProvider = this.createProvider(config);
       this.backupProviders = [];
     }
   }
 
-  private createProvider(config: MessagingSingleProviderConfig): IMessagingProvider {
+  private createProvider(
+    config: MessagingSingleProviderConfig,
+  ): IMessagingProvider {
     switch (config.provider) {
       case MessagingProvider.TWILIO:
         return new TwilioProvider(config.config || {}, this.logger);
       case MessagingProvider.SNS:
         return new SNSProvider(config.config || {}, this.logger);
+      case MessagingProvider.META:
+        return new MetaProvider(config.config || {}, this.logger);
     }
   }
 
   /**
    * Sends an SMS message using the configured providers.
-   * 
+   *
    * Automatically validates phone numbers and message structure before sending.
    * If the primary provider fails, automatically tries backup providers in order.
    * Implements retry logic with exponential backoff for transient failures.
-   * 
+   *
    * @param config - SMS configuration with message and optional settings
    * @returns Send result with message ID and delivery status
    * @throws {MessagingValidationError} If message validation fails
    * @throws {MessagingProviderError} If all providers fail to send the message
-   * 
+   *
    * @example
    * ```typescript
    * const result = await service.sendSMS({
@@ -134,10 +150,10 @@ export class MessagingService {
    *     body: 'Hello from Basepack!'
    *   }
    * });
-   * 
+   *
    * console.log(result.messageId); // Message ID from provider
    * ```
-   * 
+   *
    * @example With media attachment
    * ```typescript
    * const result = await service.sendSMS({
@@ -153,7 +169,7 @@ export class MessagingService {
   async sendSMS(config: SMSSendConfig): Promise<MessageSendResult> {
     const { message, opts } = config;
 
-    this.logger.info('Basepack Messaging: Sending SMS', {
+    this.logger.info("Basepack Messaging: Sending SMS", {
       from: message.from,
       to: message.to,
     });
@@ -161,11 +177,11 @@ export class MessagingService {
     // Validate message before sending (unless explicitly disabled)
     const shouldValidate = opts?.validateBeforeSend !== false;
     if (shouldValidate) {
-      this.logger.debug('Basepack Messaging: Validating SMS message');
+      this.logger.debug("Basepack Messaging: Validating SMS message");
       try {
         validateSMSMessage(message);
       } catch (error) {
-        this.logger.error('Basepack Messaging: Validation failed', { error });
+        this.logger.error("Basepack Messaging: Validation failed", { error });
         throw error;
       }
     }
@@ -173,21 +189,21 @@ export class MessagingService {
     return this.sendWithFailover(
       (provider) => provider.sendSMS(config),
       opts,
-      'SMS'
+      "SMS",
     );
   }
 
   /**
    * Sends a WhatsApp message using the configured providers.
-   * 
-   * Note: Only Twilio supports WhatsApp. SNS will throw an error.
-   * 
+   *
+   * Note: Twilio and Meta Business support WhatsApp. SNS will throw an error.
+   *
    * @param config - WhatsApp configuration with message and optional settings
    * @returns Send result with message ID and delivery status
    * @throws {MessagingValidationError} If message validation fails
    * @throws {MessagingProviderError} If all providers fail to send the message
    * @throws {MessagingError} If provider doesn't support WhatsApp
-   * 
+   *
    * @example
    * ```typescript
    * const result = await service.sendWhatsApp({
@@ -198,7 +214,7 @@ export class MessagingService {
    *   }
    * });
    * ```
-   * 
+   *
    * @example With media attachment
    * ```typescript
    * const result = await service.sendWhatsApp({
@@ -210,7 +226,7 @@ export class MessagingService {
    *   }
    * });
    * ```
-   * 
+   *
    * @example Using WhatsApp template
    * ```typescript
    * const result = await service.sendWhatsApp({
@@ -227,7 +243,7 @@ export class MessagingService {
   async sendWhatsApp(config: WhatsAppSendConfig): Promise<MessageSendResult> {
     const { message, opts } = config;
 
-    this.logger.info('Basepack Messaging: Sending WhatsApp', {
+    this.logger.info("Basepack Messaging: Sending WhatsApp", {
       from: message.from,
       to: message.to,
     });
@@ -235,11 +251,11 @@ export class MessagingService {
     // Validate message before sending (unless explicitly disabled)
     const shouldValidate = opts?.validateBeforeSend !== false;
     if (shouldValidate) {
-      this.logger.debug('Basepack Messaging: Validating WhatsApp message');
+      this.logger.debug("Basepack Messaging: Validating WhatsApp message");
       try {
         validateWhatsAppMessage(message);
       } catch (error) {
-        this.logger.error('Basepack Messaging: Validation failed', { error });
+        this.logger.error("Basepack Messaging: Validation failed", { error });
         throw error;
       }
     }
@@ -247,21 +263,21 @@ export class MessagingService {
     return this.sendWithFailover(
       (provider) => provider.sendWhatsApp(config),
       opts,
-      'WhatsApp'
+      "WhatsApp",
     );
   }
 
   /**
    * Sends an RCS message using the configured providers.
-   * 
+   *
    * Note: Only Twilio supports RCS, and support is limited. SNS will throw an error.
-   * 
+   *
    * @param config - RCS configuration with message and optional settings
    * @returns Send result with message ID and delivery status
    * @throws {MessagingValidationError} If message validation fails
    * @throws {MessagingProviderError} If all providers fail to send the message
    * @throws {MessagingError} If provider doesn't support RCS
-   * 
+   *
    * @example
    * ```typescript
    * const result = await service.sendRCS({
@@ -280,7 +296,7 @@ export class MessagingService {
   async sendRCS(config: RCSSendConfig): Promise<MessageSendResult> {
     const { message, opts } = config;
 
-    this.logger.info('Basepack Messaging: Sending RCS', {
+    this.logger.info("Basepack Messaging: Sending RCS", {
       from: message.from,
       to: message.to,
     });
@@ -288,11 +304,11 @@ export class MessagingService {
     // Validate message before sending (unless explicitly disabled)
     const shouldValidate = opts?.validateBeforeSend !== false;
     if (shouldValidate) {
-      this.logger.debug('Basepack Messaging: Validating RCS message');
+      this.logger.debug("Basepack Messaging: Validating RCS message");
       try {
         validateRCSMessage(message);
       } catch (error) {
-        this.logger.error('Basepack Messaging: Validation failed', { error });
+        this.logger.error("Basepack Messaging: Validation failed", { error });
         throw error;
       }
     }
@@ -300,21 +316,22 @@ export class MessagingService {
     return this.sendWithFailover(
       (provider) => provider.sendRCS(config),
       opts,
-      'RCS'
+      "RCS",
     );
   }
 
   /**
    * Gets the delivery status of a message.
-   * 
+   *
    * Note: Not all providers support status tracking.
    * - Twilio: Supported
    * - SNS: Not supported (returns null)
-   * 
+   * - Meta Business: Supported
+   *
    * @param messageId - Message ID to check
    * @param providerName - Optional provider name to check (defaults to primary)
    * @returns Message status information or null if not supported/not found
-   * 
+   *
    * @example
    * ```typescript
    * const status = await service.getMessageStatus('SM1234567890abcdef');
@@ -323,8 +340,11 @@ export class MessagingService {
    * }
    * ```
    */
-  async getMessageStatus(messageId: string, providerName?: MessagingProvider): Promise<MessageStatus | null> {
-    this.logger.debug('Basepack Messaging: Getting message status', {
+  async getMessageStatus(
+    messageId: string,
+    providerName?: MessagingProvider,
+  ): Promise<MessageStatus | null> {
+    this.logger.debug("Basepack Messaging: Getting message status", {
       messageId,
       provider: providerName || this.primaryProvider.name,
     });
@@ -333,7 +353,7 @@ export class MessagingService {
     let provider = this.primaryProvider;
     if (providerName) {
       const found = [this.primaryProvider, ...this.backupProviders].find(
-        p => p.name === providerName
+        (p) => p.name === providerName,
       );
       if (found) {
         provider = found;
@@ -342,16 +362,19 @@ export class MessagingService {
 
     // Check if provider supports status tracking
     if (!provider.getMessageStatus) {
-      this.logger.debug('Basepack Messaging: Provider does not support status tracking', {
-        provider: provider.name,
-      });
+      this.logger.debug(
+        "Basepack Messaging: Provider does not support status tracking",
+        {
+          provider: provider.name,
+        },
+      );
       return null;
     }
 
     try {
       return await provider.getMessageStatus(messageId);
     } catch (error) {
-      this.logger.error('Basepack Messaging: Failed to get message status', {
+      this.logger.error("Basepack Messaging: Failed to get message status", {
         messageId,
         provider: provider.name,
         error,
@@ -362,9 +385,9 @@ export class MessagingService {
 
   /**
    * Checks the health status of the primary and backup messaging providers.
-   * 
+   *
    * @returns Health status object containing primary provider status and backup provider statuses
-   * 
+   *
    * @example
    * ```typescript
    * const health = await service.health();
@@ -382,15 +405,15 @@ export class MessagingService {
     const backupHealths = await Promise.all(
       this.backupProviders.map(async (provider) => ({
         name: provider.name,
-        health: provider.health ? await provider.health() : { ok: true }
-      }))
+        health: provider.health ? await provider.health() : { ok: true },
+      })),
     );
 
     return {
       ok: primaryHealth.ok,
       provider: this.primaryProvider.name,
       primary: primaryHealth,
-      backups: backupHealths
+      backups: backupHealths,
     };
   }
 
@@ -399,8 +422,12 @@ export class MessagingService {
    */
   private async sendWithFailover(
     sendFn: (provider: IMessagingProvider) => Promise<MessageSendResult>,
-    opts: SMSSendConfig['opts'] | WhatsAppSendConfig['opts'] | RCSSendConfig['opts'] | undefined,
-    messageType: string
+    opts:
+      | SMSSendConfig["opts"]
+      | WhatsAppSendConfig["opts"]
+      | RCSSendConfig["opts"]
+      | undefined,
+    messageType: string,
   ): Promise<MessageSendResult> {
     const providers = [this.primaryProvider, ...this.backupProviders];
     const errors: Array<{ provider: string; error: string }> = [];
@@ -413,68 +440,73 @@ export class MessagingService {
 
     for (const provider of providers) {
       try {
-        this.logger.debug('Basepack Messaging: Attempting send', {
+        this.logger.debug("Basepack Messaging: Attempting send", {
           provider: provider.name,
           messageType,
         });
-        
+
         // Use retry logic when sending through each provider
         const result = await withRetry(
           () => sendFn(provider),
           retryOptions,
-          this.logger
+          this.logger,
         );
-        
+
         // Check if send was successful
         if (result.success) {
-          this.logger.info('Basepack Messaging: Message sent successfully', {
+          this.logger.info("Basepack Messaging: Message sent successfully", {
             provider: provider.name,
             messageType,
             messageId: result.messageId,
           });
           return result;
         }
-        
+
         // Failed, record error and continue to next provider
-        const failureError = result.error || 'Unknown error';
-        this.logger.error('Basepack Messaging: Message send failed', {
+        const failureError = result.error || "Unknown error";
+        this.logger.error("Basepack Messaging: Message send failed", {
           provider: provider.name,
           messageType,
           error: failureError,
         });
         errors.push({
           provider: provider.name,
-          error: failureError
+          error: failureError,
         });
       } catch (error) {
         // Provider threw an exception, record it and try next provider
         const messagingError = MessagingError.from(error, provider.name, true);
-        this.logger.error('Basepack Messaging: Provider exception', {
+        this.logger.error("Basepack Messaging: Provider exception", {
           provider: provider.name,
           messageType,
           error: messagingError.message,
         });
         errors.push({
           provider: provider.name,
-          error: messagingError.message
+          error: messagingError.message,
         });
-        
+
         // If there are backup providers, log failover attempt
         if (providers.indexOf(provider) < providers.length - 1) {
           const nextProvider = providers[providers.indexOf(provider) + 1];
-          this.logger.info('Basepack Messaging: Failing over to backup provider', { 
-            from: provider.name,
-            to: nextProvider.name,
-            messageType,
-          });
+          this.logger.info(
+            "Basepack Messaging: Failing over to backup provider",
+            {
+              from: provider.name,
+              to: nextProvider.name,
+              messageType,
+            },
+          );
         }
       }
     }
 
     // All providers failed
-    this.logger.error('Basepack Messaging: All providers failed', { messageType, errors });
-    const errorMessage = `All messaging providers failed to send ${messageType}. Errors: ${errors.map(e => `${e.provider}: ${e.error}`).join('; ')}`;
+    this.logger.error("Basepack Messaging: All providers failed", {
+      messageType,
+      errors,
+    });
+    const errorMessage = `All messaging providers failed to send ${messageType}. Errors: ${errors.map((e) => `${e.provider}: ${e.error}`).join("; ")}`;
     throw new MessagingProviderError(errorMessage, errors);
   }
 }
-

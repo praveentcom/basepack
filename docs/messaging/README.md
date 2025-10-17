@@ -5,7 +5,7 @@ The Messaging service provides a unified interface for sending SMS, WhatsApp, an
 ## Features
 
 - 📱 **Multiple Channels**: SMS, WhatsApp, and RCS messaging
-- 🔄 **Multi-Provider Support**: Twilio and AWS SNS with automatic failover
+- 🔄 **Multi-Provider Support**: Twilio, AWS SNS, and Meta Business with automatic failover
 - 📎 **Rich Media**: Send images, videos, and documents (provider-dependent)
 - ✅ **Validation**: E.164 phone number format validation
 - 🔁 **Auto-Retry**: Exponential backoff for transient failures
@@ -88,6 +88,28 @@ const result = await service.sendWhatsApp({
     from: 'whatsapp:+14155552671',
     to: 'whatsapp:+14155552672',
     body: 'Hello via WhatsApp!'
+  }
+});
+```
+
+### WhatsApp with Meta Business
+
+```typescript
+import { MessagingService, MessagingProvider } from 'basepack';
+
+const service = new MessagingService({
+  provider: MessagingProvider.META,
+  config: {
+    phoneNumberId: process.env.META_PHONE_NUMBER_ID,
+    accessToken: process.env.META_ACCESS_TOKEN
+  }
+});
+
+const result = await service.sendWhatsApp({
+  message: {
+    from: process.env.META_PHONE_NUMBER_ID!, // Phone Number ID
+    to: '+14155552672',
+    body: 'Hello from Meta Business!'
   }
 });
 ```
@@ -189,6 +211,66 @@ AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
     }
   ]
 }
+```
+
+### Meta Business
+
+Meta Business provides direct WhatsApp API access through the Graph API.
+
+**Prerequisites:**
+1. **Meta Business Account**: Create a [Meta Business Account](https://business.facebook.com/)
+2. **WhatsApp Business Account**: Set up a [WhatsApp Business Account](https://business.facebook.com/overview/whatsapp)
+3. **Phone Number**: Get a WhatsApp Business phone number
+4. **Access Token**: Generate a System User Access Token with `whatsapp_business_messaging` permission
+5. **App Setup**: Create a Meta App with WhatsApp product enabled
+
+**Configuration:**
+```typescript
+import { MessagingService, MessagingProvider } from 'basepack';
+
+const service = new MessagingService({
+  provider: MessagingProvider.META,
+  config: {
+    phoneNumberId: '123456789', // From WhatsApp Business Account
+    accessToken: 'EAAD...', // System User Access Token
+    version: 'v18.0', // Graph API version
+    endpoint: 'https://graph.facebook.com', // optional, default
+    wabaId: '987654321' // optional: WhatsApp Business Account ID
+  }
+});
+```
+
+**Environment Variables:**
+```bash
+META_PHONE_NUMBER_ID=123456789
+META_ACCESS_TOKEN=EAAD...
+META_WABA_ID=987654321 # optional
+```
+
+**Example Usage:**
+```typescript
+// Send text message
+const result = await service.sendWhatsApp({
+  message: {
+    from: '123456789', // Phone Number ID
+    to: '+14155552672',
+    body: 'Hello from Meta Business!'
+  }
+});
+
+// Send template message
+await service.sendWhatsApp({
+  message: {
+    from: '123456789',
+    to: '+14155552672',
+    body: '', // Empty for templates
+    templateName: 'welcome_message',
+    templateVariables: {
+      '1': 'John',
+      '2': '12345'
+    }
+  }
+});
 ```
 
 ## Multi-Provider Failover
@@ -460,17 +542,17 @@ if (health.backups[0]?.health.ok) {
 
 ## Provider Comparison
 
-| Feature | Twilio | AWS SNS |
-|---------|--------|---------|
-| SMS | ✅ | ✅ |
-| WhatsApp | ✅ | ❌ |
-| RCS | ✅ (limited) | ❌ |
-| Media Attachments | ✅ | ❌ |
-| Status Tracking | ✅ | ❌ |
-| Templates | ✅ | ❌ |
-| International SMS | ✅ | ✅ |
-| Pricing | Pay per message | Pay per message |
-| Setup Complexity | Medium | Low (if using AWS) |
+| Feature | Twilio | AWS SNS | Meta Business |
+|---------|--------|---------|---------------|
+| SMS | ✅ | ✅ | ❌ |
+| WhatsApp | ✅ | ❌ | ✅ |
+| RCS | ✅ (limited) | ❌ | ❌ |
+| Media Attachments | ✅ | ❌ | ✅ |
+| Status Tracking | ✅ | ❌ | ✅ |
+| Templates | ✅ | ❌ | ✅ |
+| International SMS | ✅ | ✅ | ❌ |
+| Pricing | Pay per message | Pay per message | Pay per message |
+| Setup Complexity | Medium | Low (if using AWS) | High |
 
 ## API Reference
 

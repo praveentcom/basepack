@@ -1,8 +1,16 @@
 import { EmailService } from '../../../../src/email/service';
 import { EmailProvider } from '../../../../src/email/types';
-import { getTestEmail } from '../test-utils';
+import { getTestEmail, credentialCheckers } from '../test-utils';
 
-describe('SMTP Provider', () => {
+const hasCredentials = credentialCheckers.smtp();
+
+describe(hasCredentials ? 'SMTP Provider' : 'SMTP Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping SMTP integration tests - missing credentials', () => {});
+    return;
+  }
+
   it('should send email via SMTP', async () => {
     const service = new EmailService({
       provider: EmailProvider.SMTP,

@@ -1,17 +1,25 @@
 /**
  * Integration tests for Redis cache adapter
- * 
+ *
  * To run these tests:
  * 1. Ensure Redis is running locally on localhost:6379
- * 2. Set REDIS_ENABLED=true in test.env if not running in CI
+ * 2. Set REDIS_ENABLED=true in test.env
  * 3. Run: npm run test:integration
  */
 
 import { RedisProvider } from '../../../../src/cache/adapters/redis';
 import { CacheProvider } from '../../../../src/cache/types';
-import { getRedisTestConfig } from '../test-utils';
+import { getRedisTestConfig, credentialCheckers } from '../test-utils';
 
-describe('RedisProvider Integration Tests', () => {
+const hasCredentials = credentialCheckers.redis();
+
+describe(hasCredentials ? 'RedisProvider Integration Tests' : 'RedisProvider Integration Tests (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping Redis integration tests - missing credentials', () => {});
+    return;
+  }
+
   let provider: RedisProvider;
   const testKeys: string[] = [];
 

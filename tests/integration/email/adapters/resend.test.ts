@@ -1,8 +1,16 @@
 import { EmailService } from '../../../../src/email/service';
 import { EmailProvider } from '../../../../src/email/types';
-import { getTestEmail } from '../test-utils';
+import { getTestEmail, credentialCheckers } from '../test-utils';
 
-describe('Resend Provider', () => {
+const hasCredentials = credentialCheckers.resend();
+
+describe(hasCredentials ? 'Resend Provider' : 'Resend Provider (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping Resend integration tests - missing credentials', () => {});
+    return;
+  }
+
   it('should send email via Resend', async () => {
     const service = new EmailService({
       provider: EmailProvider.RESEND,

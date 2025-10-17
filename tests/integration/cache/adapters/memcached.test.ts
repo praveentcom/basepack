@@ -1,17 +1,25 @@
 /**
  * Integration tests for Memcached cache adapter
- * 
+ *
  * To run these tests:
  * 1. Ensure Memcached is running locally on localhost:11211
- * 2. Set MEMCACHED_ENABLED=true in test.env if not running in CI
+ * 2. Set MEMCACHED_ENABLED=true in test.env
  * 3. Run: npm run test:integration
  */
 
 import { MemcachedProvider } from '../../../../src/cache/adapters/memcached';
 import { CacheProvider } from '../../../../src/cache/types';
-import { getMemcachedTestConfig } from '../test-utils';
+import { getMemcachedTestConfig, credentialCheckers } from '../test-utils';
 
-describe('MemcachedProvider Integration Tests', () => {
+const hasCredentials = credentialCheckers.memcached();
+
+describe(hasCredentials ? 'MemcachedProvider Integration Tests' : 'MemcachedProvider Integration Tests (skipped - missing credentials)', () => {
+  if (!hasCredentials) {
+    // Skip all tests in this suite
+    test.skip('Skipping Memcached integration tests - missing credentials', () => {});
+    return;
+  }
+
   let provider: MemcachedProvider;
   const testKeys: string[] = [];
 

@@ -26,3 +26,29 @@ export function getMemcachedTestConfig() {
   };
 }
 
+/**
+ * Check if required credentials are configured
+ * 
+ * @param provider - Cache provider name
+ * @param requiredEnvVars - Array of required environment variable names
+ * @returns True if credentials are configured, false otherwise
+ */
+export const hasCredentials = (provider: string, requiredEnvVars: string[]): boolean => {
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.warn(`Skipping ${provider} integration tests - missing environment variables: ${missingVars.join(', ')}`);
+    return false;
+  }
+  
+  return true;
+};
+
+/**
+ * Provider-specific credential checkers
+ */
+export const credentialCheckers = {
+  redis: () => hasCredentials('Redis', ['REDIS_ENABLED']),
+  memcached: () => hasCredentials('Memcached', ['MEMCACHED_ENABLED']),
+};
+
