@@ -141,13 +141,13 @@ export type EmailSendConfig =
  * 
  * @example
  * ```typescript
- * if (isSingleMessageConfig(config)) {
+ * if (isEmailSingleMessageConfig(config)) {
  *   // TypeScript knows config.message exists
  *   console.log(config.message.subject);
  * }
  * ```
  */
-export function isSingleMessageConfig(
+export function isEmailSingleMessageConfig(
   config: EmailSendConfig
 ): config is { message: EmailMessage; opts?: EmailBaseOptions } {
   return 'message' in config && config.message !== undefined;
@@ -161,13 +161,13 @@ export function isSingleMessageConfig(
  * 
  * @example
  * ```typescript
- * if (isBatchMessageConfig(config)) {
+ * if (isEmailBatchMessageConfig(config)) {
  *   // TypeScript knows config.messages exists
  *   console.log(config.messages.length);
  * }
  * ```
  */
-export function isBatchMessageConfig(
+export function isEmailBatchMessageConfig(
   config: EmailSendConfig
 ): config is { messages: EmailMessage[]; opts?: EmailBaseOptions } {
   return 'messages' in config && config.messages !== undefined;
@@ -331,13 +331,13 @@ export interface SMTPConfig {
  * 
  * @example
  * ```typescript
- * const sesConfig: SingleProviderConfig = {
+ * const sesConfig: EmailSingleProviderConfig = {
  *   provider: EmailProvider.SES,
  *   config: { region: 'us-east-1' }
  * };
  * ```
  */
-export type SingleProviderConfig = 
+export type EmailSingleProviderConfig = 
   | { provider: EmailProvider.SES; config?: SESConfig }
   | { provider: EmailProvider.SENDGRID; config?: SendGridConfig }
   | { provider: EmailProvider.MAILGUN; config?: MailgunConfig }
@@ -378,12 +378,12 @@ export type SingleProviderConfig =
  * ```
  */
 export type EmailServiceConfig = 
-  | (SingleProviderConfig & { logger?: Logger })
+  | (EmailSingleProviderConfig & { logger?: Logger })
   | {
       /** Primary email provider to use first */
-      primary: SingleProviderConfig;
+      primary: EmailSingleProviderConfig;
       /** Optional backup providers for automatic failover */
-      backups?: SingleProviderConfig[];
+      backups?: EmailSingleProviderConfig[];
       /** Optional logger for debugging and monitoring */
       logger?: Logger;
     };

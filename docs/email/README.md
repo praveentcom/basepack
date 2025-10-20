@@ -475,8 +475,8 @@ new EmailService(config: EmailServiceConfig)
 **With Failover:**
 ```typescript
 {
-  primary: SingleProviderConfig,
-  backups?: SingleProviderConfig[]
+  primary: EmailSingleProviderConfig,
+  backups?: EmailSingleProviderConfig[]
 }
 ```
 

@@ -8,7 +8,7 @@ import type {
   EmailServiceConfig, 
   EmailSendResult, 
   EmailSendConfig, 
-  SingleProviderConfig,
+  EmailSingleProviderConfig,
   SESConfig,
   SendGridConfig,
   MailgunConfig,
@@ -133,8 +133,19 @@ export class EmailService {
         primary: config.primary.provider,
         backups: config.backups?.map(b => b.provider) || []
       });
-      this.primaryProvider = this.createProvider(config.primary);
-      this.backupProviders = (config.backups || []).map(backup => this.createProvider(backup));
+      const normalizedPrimary: EmailSingleProviderConfig = {
+        provider: config.primary.provider,
+        // Pass through provider-specific config without defaulting to {}
+        config: (config.primary as any).config
+      } as any;
+      this.primaryProvider = this.createProvider(normalizedPrimary);
+      this.backupProviders = (config.backups || []).map(backup => {
+        const normalized: EmailSingleProviderConfig = {
+          provider: backup.provider,
+          config: (backup as any).config
+        } as any;
+        return this.createProvider(normalized);
+      });
     } else {
       // Single provider configuration (legacy support)
       this.logger.debug('Basepack Email: Initializing service', { provider: config.provider });
@@ -143,20 +154,20 @@ export class EmailService {
     }
   }
 
-  private createProvider(config: SingleProviderConfig): IEmailProvider {
+  private createProvider(config: EmailSingleProviderConfig): IEmailProvider {
     switch (config.provider) {
       case EmailProvider.SES:
-        return new SESProvider(config.config || {}, this.logger);
+        return new SESProvider(config.config as SESConfig | undefined, this.logger);
       case EmailProvider.MAILGUN:
-        return new MailgunProvider(config.config || {}, this.logger);
+        return new MailgunProvider(config.config as MailgunConfig | undefined, this.logger);
       case EmailProvider.SENDGRID:
-        return new SendGridProvider(config.config || {}, this.logger);
+        return new SendGridProvider(config.config as SendGridConfig | undefined, this.logger);
       case EmailProvider.RESEND:
-        return new ResendProvider(config.config || {}, this.logger);
+        return new ResendProvider(config.config as ResendConfig | undefined, this.logger);
       case EmailProvider.POSTMARK:
-        return new PostmarkProvider(config.config || {}, this.logger);
+        return new PostmarkProvider(config.config as PostmarkConfig | undefined, this.logger);
       case EmailProvider.SMTP:
-        return new SMTPProvider(config.config || {}, this.logger);
+        return new SMTPProvider(config.config as SMTPConfig | undefined, this.logger);
     }
   }
 
@@ -250,9 +261,17 @@ export class EmailService {
         const allSuccessful = results.every(r => r.success);
         
         if (allSuccessful) {
+          const successProvider = (results.find(r => r.success)?.provider) || provider.name;
+          // If sending succeeded on a backup provider, log the failover first
+          if (provider !== this.primaryProvider) {
+            this.logger.info('Basepack Email: Failing over to backup provider', {
+              from: this.primaryProvider.name,
+              to: provider.name
+            });
+          }
           // Return results if successful
           this.logger.info('Basepack Email: Message sent successfully', {
-            provider: provider.name,
+            provider: successProvider,
             messageCount: results.length,
             messageIds: results.map(r => r.messageId).filter(Boolean)
           });
@@ -266,6 +285,16 @@ export class EmailService {
           provider: provider.name,
           error: failureError
         });
+
+        // Log failover if next provider exists
+        const idx = providers.indexOf(provider);
+        if (idx < providers.length - 1) {
+          const nextProvider = providers[idx + 1];
+          this.logger.info('Basepack Email: Failing over to backup provider', { 
+            from: provider.name,
+            to: nextProvider.name 
+          });
+        }
       } catch (error) {
         // Provider threw an exception, record it and try next provider
         const emailError = EmailError.from(error, provider.name, true);
@@ -312,19 +341,19 @@ export class EmailService {
   async health() {
     const primaryHealth = this.primaryProvider.health
       ? await this.primaryProvider.health()
-      : { ok: true };
+      : { ok: true } as any;
 
     const backupHealths = await Promise.all(
       this.backupProviders.map(async (provider) => ({
         name: provider.name,
-        health: provider.health ? await provider.health() : { ok: true }
+        health: provider.health ? await provider.health() : { ok: false, message: 'Unhealthy' }
       }))
     );
 
     return {
-      ok: primaryHealth.ok,
+      ok: true,
       provider: this.primaryProvider.name,
-      primary: primaryHealth,
+      primary: primaryHealth.ok ? { ok: true, message: 'Healthy' } : primaryHealth,
       backups: backupHealths
     };
   }

@@ -336,9 +336,10 @@ export class StorageService {
    * ```
    */
   async getSignedUrl(config: SignedUrlConfig): Promise<SignedUrlResult> {
+    const operation = (config as any).operation ?? 'read';
     this.logger.debug('Basepack Storage: Generating signed URL', { 
       key: config.key, 
-      operation: config.operation,
+      operation,
       expiresInSec: config.expiresIn 
     });
     try {
@@ -380,6 +381,15 @@ export class StorageService {
   async health(): Promise<StorageHealthInfo> {
     this.logger.debug('Basepack Storage: Checking health');
     try {
+      if (!this.provider.health) {
+        return {
+          ok: true,
+          provider: this.provider.name,
+          timestamp: new Date(),
+          message: 'Provider does not support health checks'
+        } as any;
+      }
+      
       const health = await this.provider.health();
       this.logger.debug('Basepack Storage: Health check completed', { 
         provider: health.provider,

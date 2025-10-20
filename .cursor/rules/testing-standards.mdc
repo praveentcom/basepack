@@ -1,0 +1,396 @@
+---
+description: testing standards for basepack
+alwaysApply: false
+---
+# Basepack Testing Standards
+
+- KISS Principle: Keep It Simple, Stupid
+
+## Integration Test Standards
+
+**Integration tests should be simple and straightforward.**
+
+- Test the happy path for core functionality
+- Avoid over-engineering or redundant test cases
+- One test per main feature (upload, download, etc.)
+- Don't test every parameter combination
+- Don't test error handling exhaustively (that's for unit tests)
+- Reuse test data between tests where possible
+
+**Good:** Simple test covering the main use case
+```typescript
+it('should upload a file to S3', async () => {
+  const result = await service.upload({ key: 'test.txt', data: buffer });
+  expect(result.success).toBe(true);
+});
+```
+
+**Bad:** Over-engineered tests with excessive assertions
+```typescript
+it('should upload a file with metadata and cache control and encoding', async () => {
+  const result = await service.upload({
+    key: 'test.txt',
+    data: buffer,
+    metadata: { a: '1', b: '2' },
+    cacheControl: 'max-age=3600',
+    contentEncoding: 'gzip'
+  });
+  expect(result.success).toBe(true);
+  expect(result.key).toBe('test.txt');
+  expect(result.provider).toBe(StorageProvider.S3);
+  expect(result.etag).toBeDefined();
+  expect(result.timestamp).toBeInstanceOf(Date);
+});
+```
+
+### Test Through Service Layer Only
+
+**Always test through the service layer, not directly with providers.**
+
+Integration tests should use the service classes (`EmailService`, `StorageService`, etc.) rather than provider adapters directly (`SESProvider`, `S3Provider`, etc.).
+
+**Why?**
+- Users interact with services, not providers directly
+- Tests verify the complete user-facing API
+- Avoids redundant testing of the same functionality
+- Consistent with how the library is actually used
+- Service layer may add orchestration logic (logging, future failover, etc.)
+
+**Good:**
+```typescript
+// tests/integration/email/adapters/ses.test.ts
+import { EmailService } from '../../../../src/email/service';
+import { EmailProvider } from '../../../../src/email/types';
+
+describe('SES Provider', () => {
+  it('should send email via SES', async () => {
+    const service = new EmailService({
+      provider: EmailProvider.SES,
+      config: {
+        region: process.env.AWS_REGION,
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+
+    const results = await service.send({ message: getTestEmail() });
+    
+    expect(results[0].success).toBe(true);
+    expect(results[0].provider).toBe(EmailProvider.SES);
+  });
+});
+```
+
+**Bad:**
+```typescript
+// DON'T DO THIS
+import { SESProvider } from '../../../../src/email/adapters/ses';
+
+describe('SES Provider', () => {
+  it('should send email via SES', async () => {
+    const provider = new SESProvider({
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    });
+
+    const results = await provider.send({ message: getTestEmail() });
+    
+    expect(results[0].success).toBe(true);
+  });
+});
+```
+
+### File Structure
+
+Integration tests should mirror the source structure:
+
+```
+tests/integration/
+├── email/
+│   ├── adapters/
+│   │   ├── ses.test.ts         # Tests EmailService with SES
+│   │   ├── sendgrid.test.ts    # Tests EmailService with SendGrid
+│   │   └── ...
+│   └── test-utils.ts           # Shared test utilities
+├── storage/
+│   ├── adapters/
+│   │   └── s3.test.ts          # Tests StorageService with S3
+│   └── test-utils.ts
+├── test.env.example            # Example credentials file
+└── test.env                    # Actual credentials (gitignored)
+```
+
+### Test Utilities
+
+Each service module should have a `test-utils.ts` file with:
+
+- Helper functions for loading test config
+- Test data generators
+- Common test fixtures
+
+**Example:**
+```typescript
+// tests/integration/email/test-utils.ts
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import { EmailMessage } from '../../../src/email/types';
+import { StorageProvider } from '../../../src/storage/types';
+
+dotenv.config({ path: path.join(__dirname, '..', 'test.env') });
+
+export const getTestEmail = (): EmailMessage => ({
+  from: process.env.TEST_FROM_EMAIL || 'test@example.com',
+  to: process.env.TEST_TO_EMAIL || 'recipient@example.com',
+  subject: `Integration Test - ${new Date().toISOString()}`,
+  text: 'Test email content',
+});
+```
+
+### Environment Variables
+
+- Integration tests use `tests/integration/test.env` for credentials which is gitignored.
+- Always use the `test.env.example` to update the relevant environment variables needed for the integration tests.
+
+## Unit Test Standards
+
+### Provider Tests
+
+Unit tests for providers should mock external dependencies and focus on:
+
+- Validation logic
+- Error handling and error transformation
+- Internal logic (retry logic, rate limiting, etc.)
+- Edge cases
+
+### Service Tests
+
+Unit tests for services should mock providers and focus on:
+
+- Provider orchestration
+- Failover logic
+- Service-level error handling
+- Configuration validation
+
+## Running Tests
+
+```bash
+# Run all unit tests (fast, no credentials needed)
+npm run test:unit
+
+# Run all integration tests (slow, credentials required)
+npm run test:integration
+
+# Run specific integration test
+npm run test:integration -- tests/integration/email/adapters/ses.test.ts
+```
+
+## Test Naming Conventions
+
+- Test files: `*.test.ts`
+- Describe blocks: Use the feature/method name
+- Test cases: Start with "should" and describe the expected behavior
+
+```typescript
+describe('upload', () => {
+  it('should upload a file successfully', async () => { /* ... */ });
+  it('should handle upload errors gracefully', async () => { /* ... */ });
+  it('should validate file key', async () => { /* ... */ });
+});
+```
+# Basepack Testing Standards
+
+- KISS Principle: Keep It Simple, Stupid
+
+## Integration Test Standards
+
+**Integration tests should be simple and straightforward.**
+
+- Test the happy path for core functionality
+- Avoid over-engineering or redundant test cases
+- One test per main feature (upload, download, etc.)
+- Don't test every parameter combination
+- Don't test error handling exhaustively (that's for unit tests)
+- Reuse test data between tests where possible
+
+**Good:** Simple test covering the main use case
+```typescript
+it('should upload a file to S3', async () => {
+  const result = await service.upload({ key: 'test.txt', data: buffer });
+  expect(result.success).toBe(true);
+});
+```
+
+**Bad:** Over-engineered tests with excessive assertions
+```typescript
+it('should upload a file with metadata and cache control and encoding', async () => {
+  const result = await service.upload({
+    key: 'test.txt',
+    data: buffer,
+    metadata: { a: '1', b: '2' },
+    cacheControl: 'max-age=3600',
+    contentEncoding: 'gzip'
+  });
+  expect(result.success).toBe(true);
+  expect(result.key).toBe('test.txt');
+  expect(result.provider).toBe(StorageProvider.S3);
+  expect(result.etag).toBeDefined();
+  expect(result.timestamp).toBeInstanceOf(Date);
+});
+```
+
+### Test Through Service Layer Only
+
+**Always test through the service layer, not directly with providers.**
+
+Integration tests should use the service classes (`EmailService`, `StorageService`, etc.) rather than provider adapters directly (`SESProvider`, `S3Provider`, etc.).
+
+**Why?**
+- Users interact with services, not providers directly
+- Tests verify the complete user-facing API
+- Avoids redundant testing of the same functionality
+- Consistent with how the library is actually used
+- Service layer may add orchestration logic (logging, future failover, etc.)
+
+**Good:**
+```typescript
+// tests/integration/email/adapters/ses.test.ts
+import { EmailService } from '../../../../src/email/service';
+import { EmailProvider } from '../../../../src/email/types';
+
+describe('SES Provider', () => {
+  it('should send email via SES', async () => {
+    const service = new EmailService({
+      provider: EmailProvider.SES,
+      config: {
+        region: process.env.AWS_REGION,
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+
+    const results = await service.send({ message: getTestEmail() });
+    
+    expect(results[0].success).toBe(true);
+    expect(results[0].provider).toBe(EmailProvider.SES);
+  });
+});
+```
+
+**Bad:**
+```typescript
+// DON'T DO THIS
+import { SESProvider } from '../../../../src/email/adapters/ses';
+
+describe('SES Provider', () => {
+  it('should send email via SES', async () => {
+    const provider = new SESProvider({
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    });
+
+    const results = await provider.send({ message: getTestEmail() });
+    
+    expect(results[0].success).toBe(true);
+  });
+});
+```
+
+### File Structure
+
+Integration tests should mirror the source structure:
+
+```
+tests/integration/
+├── email/
+│   ├── adapters/
+│   │   ├── ses.test.ts         # Tests EmailService with SES
+│   │   ├── sendgrid.test.ts    # Tests EmailService with SendGrid
+│   │   └── ...
+│   └── test-utils.ts           # Shared test utilities
+├── storage/
+│   ├── adapters/
+│   │   └── s3.test.ts          # Tests StorageService with S3
+│   └── test-utils.ts
+├── test.env.example            # Example credentials file
+└── test.env                    # Actual credentials (gitignored)
+```
+
+### Test Utilities
+
+Each service module should have a `test-utils.ts` file with:
+
+- Helper functions for loading test config
+- Test data generators
+- Common test fixtures
+
+**Example:**
+```typescript
+// tests/integration/email/test-utils.ts
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import { EmailMessage } from '../../../src/email/types';
+import { StorageProvider } from '../../../src/storage/types';
+
+dotenv.config({ path: path.join(__dirname, '..', 'test.env') });
+
+export const getTestEmail = (): EmailMessage => ({
+  from: process.env.TEST_FROM_EMAIL || 'test@example.com',
+  to: process.env.TEST_TO_EMAIL || 'recipient@example.com',
+  subject: `Integration Test - ${new Date().toISOString()}`,
+  text: 'Test email content',
+});
+```
+
+### Environment Variables
+
+- Integration tests use `tests/integration/test.env` for credentials which is gitignored.
+- Always use the `test.env.example` to update the relevant environment variables needed for the integration tests.
+
+## Unit Test Standards
+
+### Provider Tests
+
+Unit tests for providers should mock external dependencies and focus on:
+
+- Validation logic
+- Error handling and error transformation
+- Internal logic (retry logic, rate limiting, etc.)
+- Edge cases
+
+### Service Tests
+
+Unit tests for services should mock providers and focus on:
+
+- Provider orchestration
+- Failover logic
+- Service-level error handling
+- Configuration validation
+
+## Running Tests
+
+```bash
+# Run all unit tests (fast, no credentials needed)
+npm run test:unit
+
+# Run all integration tests (slow, credentials required)
+npm run test:integration
+
+# Run specific integration test
+npm run test:integration -- tests/integration/email/adapters/ses.test.ts
+```
+
+## Test Naming Conventions
+
+- Test files: `*.test.ts`
+- Describe blocks: Use the feature/method name
+- Test cases: Start with "should" and describe the expected behavior
+
+```typescript
+describe('upload', () => {
+  it('should upload a file successfully', async () => { /* ... */ });
+  it('should handle upload errors gracefully', async () => { /* ... */ });
+  it('should validate file key', async () => { /* ... */ });
+});
+```

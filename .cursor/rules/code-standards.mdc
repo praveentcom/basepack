@@ -1,0 +1,334 @@
+---
+description: coding standards for basepack
+alwaysApply: false
+---
+# Basepack Code Standards
+
+## TypeScript Rules
+
+- Use strict mode (no `any`, handle nulls explicitly)
+- Use `interface` for objects and public APIs
+- Use `type` for unions and combinations
+- Use proper `enums` for provider names across all services
+
+## Documentation
+
+All exported code needs JSDoc comments:
+
+```typescript
+/**
+ * Brief description.
+ * 
+ * @param name - What this parameter does
+ * @returns What this returns
+ * @throws {ErrorType} When this throws
+ * 
+ * @example
+ * ```typescript
+ * const result = myFunction('test');
+ * ```
+ */
+export function myFunction(name: string): string {
+  // ...
+}
+```
+
+For interfaces, document each property:
+
+```typescript
+/** Email message configuration. */
+export interface EmailMessage {
+  /** Sender email address */
+  from: string;
+  /** Recipient email address(es) */
+  to: string | string[];
+}
+```
+
+## Errors
+
+Create custom error classes with useful context:
+
+```typescript
+export class EmailError extends Error {
+  constructor(
+    message: string,
+    public readonly provider: ProviderName,
+    public readonly statusCode?: number
+  ) {
+    super(message);
+    this.name = 'EmailError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, EmailError);
+    }
+  }
+}
+```
+
+Throw specific errors, not generic ones:
+
+```typescript
+// Good
+throw new EmailValidationError('Invalid email', 'from');
+
+// Bad
+throw new Error('Invalid email');
+```
+
+## Provider Adapters
+
+All adapters implement the service interface. Use `require()` with try-catch for optional dependencies:
+
+```typescript
+export class SESProvider implements IEmailProvider {
+  readonly name = EmailProvider.SES;
+  
+  constructor(config: SESConfig = {}) {
+    try {
+      const { SESClient } = require('@aws-sdk/client-ses');
+      // Initialize
+    } catch (error) {
+      throw new Error('Install package: npm install @aws-sdk/client-ses');
+    }
+  }
+  
+  async send(config: EmailSendConfig): Promise<EmailSendResult[]> {
+    // Implementation
+  }
+}
+```
+
+Catch errors and return structured results:
+
+```typescript
+try {
+  const result = await this.sendMessage(message);
+  results.push(result);
+} catch (error) {
+  results.push({
+    success: false,
+    error: error.message,
+    provider: this.name, // ProviderName enum
+    timestamp: new Date()
+  });
+}
+```
+
+## Validation
+
+Validate all public inputs and throw specific errors:
+
+```typescript
+export function validateEmail(message: EmailMessage): void {
+  if (!message.from) {
+    throw new EmailValidationError('From address required', 'from');
+  }
+  if (!message.to) {
+    throw new EmailValidationError('To address required', 'to');
+  }
+}
+```
+
+## Naming
+
+- **Classes**: `PascalCase` - `ClassName`
+- **Interfaces**: `PascalCase` - `IInterfaceName`
+- **Functions**: `camelCase` - `functionName`
+- **Constants**: `UPPER_SNAKE_CASE` - `CONSTANT_NAME`
+
+## Code Style
+
+- Use `readonly` for properties that don't change
+- Use `async/await`, not `.then()` 
+- Mark properties `readonly` in constructors:
+
+```typescript
+export class EmailService {
+  private readonly provider: IEmailProvider;
+  
+  constructor(config: EmailServiceConfig) {
+    this.provider = createProvider(config);
+  }
+}
+```
+
+## Testing
+
+- Unit tests: `tests/unit/email/validation.test.ts` (mirrors `src/email/validation.ts`)
+- Integration tests: `tests/integration/email/adapters/ses.test.ts` (real API and service calls)
+
+## Exports
+
+Export public APIs from each module's `index.ts`:
+
+```typescript
+// src/email/index.ts
+export * from './service';
+export * from './types';
+export * from './errors';
+```
+# Basepack Code Standards
+
+## TypeScript Rules
+
+- Use strict mode (no `any`, handle nulls explicitly)
+- Use `interface` for objects and public APIs
+- Use `type` for unions and combinations
+- Use proper `enums` for provider names across all services
+
+## Documentation
+
+All exported code needs JSDoc comments:
+
+```typescript
+/**
+ * Brief description.
+ * 
+ * @param name - What this parameter does
+ * @returns What this returns
+ * @throws {ErrorType} When this throws
+ * 
+ * @example
+ * ```typescript
+ * const result = myFunction('test');
+ * ```
+ */
+export function myFunction(name: string): string {
+  // ...
+}
+```
+
+For interfaces, document each property:
+
+```typescript
+/** Email message configuration. */
+export interface EmailMessage {
+  /** Sender email address */
+  from: string;
+  /** Recipient email address(es) */
+  to: string | string[];
+}
+```
+
+## Errors
+
+Create custom error classes with useful context:
+
+```typescript
+export class EmailError extends Error {
+  constructor(
+    message: string,
+    public readonly provider: ProviderName,
+    public readonly statusCode?: number
+  ) {
+    super(message);
+    this.name = 'EmailError';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, EmailError);
+    }
+  }
+}
+```
+
+Throw specific errors, not generic ones:
+
+```typescript
+// Good
+throw new EmailValidationError('Invalid email', 'from');
+
+// Bad
+throw new Error('Invalid email');
+```
+
+## Provider Adapters
+
+All adapters implement the service interface. Use `require()` with try-catch for optional dependencies:
+
+```typescript
+export class SESProvider implements IEmailProvider {
+  readonly name = EmailProvider.SES;
+  
+  constructor(config: SESConfig = {}) {
+    try {
+      const { SESClient } = require('@aws-sdk/client-ses');
+      // Initialize
+    } catch (error) {
+      throw new Error('Install package: npm install @aws-sdk/client-ses');
+    }
+  }
+  
+  async send(config: EmailSendConfig): Promise<EmailSendResult[]> {
+    // Implementation
+  }
+}
+```
+
+Catch errors and return structured results:
+
+```typescript
+try {
+  const result = await this.sendMessage(message);
+  results.push(result);
+} catch (error) {
+  results.push({
+    success: false,
+    error: error.message,
+    provider: this.name, // ProviderName enum
+    timestamp: new Date()
+  });
+}
+```
+
+## Validation
+
+Validate all public inputs and throw specific errors:
+
+```typescript
+export function validateEmail(message: EmailMessage): void {
+  if (!message.from) {
+    throw new EmailValidationError('From address required', 'from');
+  }
+  if (!message.to) {
+    throw new EmailValidationError('To address required', 'to');
+  }
+}
+```
+
+## Naming
+
+- **Classes**: `PascalCase` - `ClassName`
+- **Interfaces**: `PascalCase` - `IInterfaceName`
+- **Functions**: `camelCase` - `functionName`
+- **Constants**: `UPPER_SNAKE_CASE` - `CONSTANT_NAME`
+
+## Code Style
+
+- Use `readonly` for properties that don't change
+- Use `async/await`, not `.then()` 
+- Mark properties `readonly` in constructors:
+
+```typescript
+export class EmailService {
+  private readonly provider: IEmailProvider;
+  
+  constructor(config: EmailServiceConfig) {
+    this.provider = createProvider(config);
+  }
+}
+```
+
+## Testing
+
+- Unit tests: `tests/unit/email/validation.test.ts` (mirrors `src/email/validation.ts`)
+- Integration tests: `tests/integration/email/adapters/ses.test.ts` (real API and service calls)
+
+## Exports
+
+Export public APIs from each module's `index.ts`:
+
+```typescript
+// src/email/index.ts
+export * from './service';
+export * from './types';
+export * from './errors';
+```
