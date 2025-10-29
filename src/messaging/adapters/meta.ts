@@ -129,7 +129,7 @@ export class MetaProvider implements IMessagingProvider {
         payload.type = 'template';
         payload.template = {
           name: message.templateName,
-          language: { code: 'en_US' }, // Default to English, can be configurable
+          language: { code: 'en_US' },
         };
 
         // Add template variables if present

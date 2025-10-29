@@ -142,6 +142,109 @@ const result = await storage.getSignedUrl({
 
 **[Complete Storage Documentation](./docs/storage/README.md)** - Setup guides, configuration, examples, and API reference
 
+### Messaging
+
+Multi-provider messaging for SMS, WhatsApp, and RCS with automatic failover across providers.
+
+**Quick Example:**
+```typescript
+import { MessagingService, MessagingProvider } from 'basepack';
+
+const messaging = new MessagingService({
+  provider: MessagingProvider.TWILIO,
+  config: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID,
+    authToken: process.env.TWILIO_AUTH_TOKEN
+  }
+});
+
+await messaging.sendSMS({
+  message: {
+    from: '+14155552671',
+    to: '+14155552672',
+    body: 'Hello from Basepack!'
+  }
+});
+```
+
+#### Supported Providers
+
+| Provider | Package Required | Notes |
+|----------|------------------|-------|
+| Twilio | None | SMS, WhatsApp, RCS |
+| AWS SNS | `@aws-sdk/client-sns` | SMS |
+| Meta (WhatsApp) | None | WhatsApp Business |
+| MSG91 | None | SMS |
+| Vonage | None | SMS, WhatsApp |
+| Plivo | None | SMS |
+| MessageBird | None | SMS, WhatsApp |
+
+**[Complete Messaging Documentation](./docs/messaging/README.md)** - Setup guides, configuration, examples, and API reference
+
+### Notification
+
+Unified push notifications for iOS (APNs), Android/Web (FCM), and Web Push, with batch sending and per-platform options.
+
+**Quick Example:**
+```typescript
+import { NotificationService, NotificationProvider } from 'basepack';
+
+const notifications = new NotificationService({
+  provider: NotificationProvider.FCM,
+  config: { projectId: 'my-project' }
+});
+
+await notifications.send({
+  message: {
+    to: 'device-token',
+    title: 'Hello',
+    body: 'You have a new message'
+  }
+});
+```
+
+#### Supported Providers
+
+| Provider | Package Required |
+|----------|------------------|
+| FCM | `firebase-admin` |
+| APNs | `@parse/node-apn` |
+| Web Push | `web-push` |
+
+**[Complete Notification Documentation](./docs/notification/README.md)** - Setup guides, configuration, examples, and API reference
+
+### Queue
+
+Abstraction over popular queue backends for creating queues and dispatching background tasks.
+
+**Quick Example:**
+```typescript
+import { QueueService, QueueProvider } from 'basepack';
+
+const queue = new QueueService({
+  provider: QueueProvider.SQS,
+  config: { region: 'us-east-1' }
+});
+
+await queue.createTask({
+  queueNameOrUrl: 'my-queue',
+  task: {
+    body: { type: 'email', to: 'user@example.com' },
+    delaySeconds: 0
+  }
+});
+```
+
+#### Supported Providers
+
+| Provider | Package Required |
+|----------|------------------|
+| Amazon SQS | `@aws-sdk/client-sqs` |
+| RabbitMQ | `amqplib` |
+| Google Cloud Tasks | `@google-cloud/tasks` |
+
+**[Complete Queue Documentation](./docs/queue/README.md)** - Setup guides, configuration, examples, and API reference
+
 ## Logging
 
 All services log with colored output by default. You can customize logging by injecting your own logger or disable it entirely with `noopLogger`.
@@ -238,3 +341,6 @@ See [LICENSE](./LICENSE) for details.
 - [Changelog](./CHANGELOG.md)
 - [Email Service Documentation](./docs/email/README.md)
 - [Storage Service Documentation](./docs/storage/README.md)
+ - [Messaging Service Documentation](./docs/messaging/README.md)
+ - [Notification Service Documentation](./docs/notification/README.md)
+ - [Queue Service Documentation](./docs/queue/README.md)
