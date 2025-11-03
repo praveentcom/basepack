@@ -19,6 +19,7 @@ import {
   StorageProvider,
 } from '../types';
 import type { Logger } from '../../logger';
+import { toSafeErrorDetails } from '../../logger';
 import { StorageError, StorageProviderError } from '../errors';
 import {
   validateFileUpload,
@@ -141,7 +142,7 @@ export class AzureProvider implements IStorageProvider {
       if (error instanceof StorageError) {
         throw error;
       }
-      this.logger.error('Basepack Storage: Provider initialization failed', { provider: this.name, error });
+      this.logger.error('Basepack Storage: Provider initialization failed', { provider: this.name, error: toSafeErrorDetails(error) });
       throw new StorageProviderError(
         this.name,
         '@azure/storage-blob is not installed. Install it with: npm install @azure/storage-blob'
@@ -225,7 +226,7 @@ export class AzureProvider implements IStorageProvider {
       this.logger.error('Basepack Storage: Provider upload failed', { 
         provider: this.name, 
         key: config.key, 
-        error 
+        error: toSafeErrorDetails(error) 
       });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
@@ -297,7 +298,7 @@ export class AzureProvider implements IStorageProvider {
         provider: this.name, 
         key: config.key, 
         url: config.url, 
-        error 
+        error: toSafeErrorDetails(error) 
       });
       
       if (error instanceof StorageError) {
@@ -386,7 +387,7 @@ export class AzureProvider implements IStorageProvider {
       this.logger.error('Basepack Storage: Provider download failed', { 
         provider: this.name, 
         key: config.key, 
-        error 
+        error: toSafeErrorDetails(error) 
       });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
@@ -440,7 +441,7 @@ export class AzureProvider implements IStorageProvider {
       this.logger.error('Basepack Storage: Provider delete failed', { 
         provider: this.name, 
         key: config.key, 
-        error 
+        error: toSafeErrorDetails(error) 
       });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
@@ -565,7 +566,7 @@ export class AzureProvider implements IStorageProvider {
         this.logger.error('Basepack Storage: Provider package missing', { 
           provider: this.name, 
           package: '@azure/storage-blob', 
-          error 
+          error: toSafeErrorDetails(error) 
         });
         throw new StorageProviderError(
           this.name,
@@ -576,7 +577,7 @@ export class AzureProvider implements IStorageProvider {
       this.logger.error('Basepack Storage: Provider signed URL failed', { 
         provider: this.name, 
         key: config.key, 
-        error 
+        error: toSafeErrorDetails(error) 
       });
 
       if (error instanceof StorageError) {
@@ -648,7 +649,7 @@ export class AzureProvider implements IStorageProvider {
     } catch (error) {
       this.logger.error('Basepack Storage: Provider health check failed', { 
         provider: this.name, 
-        error 
+        error: toSafeErrorDetails(error) 
       });
       const storageError = StorageError.from(error, this.name);
 

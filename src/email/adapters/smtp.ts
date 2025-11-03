@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SMTPConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
+import { toSafeErrorDetails } from '../../logger';
 import type { Logger } from '../../logger';
 
 /**
@@ -137,7 +138,7 @@ export class SMTPProvider implements IEmailProvider {
         this.logger.debug('Basepack Email: Provider message sent', { provider: this.name, messageId: result.messageId });
         results.push(result);
       } catch (error) {
-        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error });
+        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error: toSafeErrorDetails(error) });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

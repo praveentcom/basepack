@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { MessagingError } from '../errors';
 import type { Logger } from '../../logger';
+import { toSafeErrorDetails } from '../../logger';
 
 /**
  * AWS SNS (Simple Notification Service) messaging provider.
@@ -93,7 +94,7 @@ export class SNSProvider implements IMessagingProvider {
         endpoint: this.options.endpoint,
       });
     } catch (error) {
-      this.logger.error('Failed to initialize SNS provider', error);
+      this.logger.error('Failed to initialize SNS provider', { error: toSafeErrorDetails(error) });
       throw new Error(
         'AWS SDK for SNS is not installed. Install it with: npm install @aws-sdk/client-sns'
       );
@@ -153,7 +154,7 @@ export class SNSProvider implements IMessagingProvider {
       this.logger.error('Basepack Messaging: Provider send failed', {
         provider: this.name,
         to: message.to,
-        error,
+        error: toSafeErrorDetails(error),
       });
 
       const messagingError = MessagingError.from(

@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SESConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
+import { toSafeErrorDetails } from '../../logger';
 import type { Logger } from '../../logger';
 
 /**
@@ -72,7 +73,7 @@ export class SESProvider implements IEmailProvider {
         endpoint: this.options.endpoint,
       });
     } catch (error) {
-      this.logger.error('Failed to initialize SES provider', error);
+      this.logger.error('Failed to initialize SES provider', { error: toSafeErrorDetails(error) });
       throw new Error(
         'AWS SDK for SES is not installed. Install it with: npm install @aws-sdk/client-ses'
       );
@@ -93,7 +94,7 @@ export class SESProvider implements IEmailProvider {
         this.logger.debug('Basepack Email: Provider message sent', { provider: this.name, messageId: result.messageId });
         results.push(result);
       } catch (error) {
-        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error });
+        this.logger.error('Basepack Email: Provider send failed', { provider: this.name, to: message.to, error: toSafeErrorDetails(error) });
         const emailError = EmailError.from(error, this.name, this.isRetryableError(error));
         results.push({
           success: false,

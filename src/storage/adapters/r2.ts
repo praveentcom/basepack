@@ -19,6 +19,7 @@ import {
   StorageProvider,
 } from '../types';
 import type { Logger } from '../../logger';
+import { toSafeErrorDetails } from '../../logger';
 import { StorageError, StorageProviderError } from '../errors';
 import {
   validateFileUpload,
@@ -128,7 +129,7 @@ export class R2Provider implements IStorageProvider {
         forcePathStyle: false,
       });
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider initialization failed', { provider: this.name, error });
+      this.logger.error('Basepack Storage: Provider initialization failed', { provider: this.name, error: toSafeErrorDetails(error) });
       throw new StorageProviderError(
         this.name,
         '@aws-sdk/client-s3 is not installed. Install it with: npm install @aws-sdk/client-s3'
@@ -199,7 +200,7 @@ export class R2Provider implements IStorageProvider {
         etag: response.ETag,
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider upload failed', { provider: this.name, key: config.key, error });
+      this.logger.error('Basepack Storage: Provider upload failed', { provider: this.name, key: config.key, error: toSafeErrorDetails(error) });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -262,7 +263,7 @@ export class R2Provider implements IStorageProvider {
         cacheControl: config.cacheControl,
       });
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider URL upload failed', { provider: this.name, key: config.key, url: config.url, error });
+      this.logger.error('Basepack Storage: Provider URL upload failed', { provider: this.name, key: config.key, url: config.url, error: toSafeErrorDetails(error) });
       
       if (error instanceof StorageError) {
         return {
@@ -345,7 +346,7 @@ export class R2Provider implements IStorageProvider {
         etag: response.ETag,
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider download failed', { provider: this.name, key: config.key, error });
+      this.logger.error('Basepack Storage: Provider download failed', { provider: this.name, key: config.key, error: toSafeErrorDetails(error) });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -394,7 +395,7 @@ export class R2Provider implements IStorageProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider delete failed', { provider: this.name, key: config.key, error });
+      this.logger.error('Basepack Storage: Provider delete failed', { provider: this.name, key: config.key, error: toSafeErrorDetails(error) });
       const storageError = StorageError.from(error, this.name, this.isRetryableError(error));
       
       return {
@@ -492,14 +493,14 @@ export class R2Provider implements IStorageProvider {
     } catch (error) {
       // Check if the error is due to missing presigner package
       if (error instanceof Error && error.message.includes('@aws-sdk/s3-request-presigner')) {
-        this.logger.error('Basepack Storage: Provider package missing', { provider: this.name, package: '@aws-sdk/s3-request-presigner', error });
+        this.logger.error('Basepack Storage: Provider package missing', { provider: this.name, package: '@aws-sdk/s3-request-presigner', error: toSafeErrorDetails(error) });
         throw new StorageProviderError(
           this.name,
           '@aws-sdk/s3-request-presigner is not installed. Install it with: npm install @aws-sdk/s3-request-presigner'
         );
       }
 
-      this.logger.error('Basepack Storage: Provider signed URL failed', { provider: this.name, key: config.key, error });
+      this.logger.error('Basepack Storage: Provider signed URL failed', { provider: this.name, key: config.key, error: toSafeErrorDetails(error) });
       const storageError = StorageError.from(error, this.name, false);
       
       return {
@@ -553,7 +554,7 @@ export class R2Provider implements IStorageProvider {
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error('Basepack Storage: Provider health check failed', { provider: this.name, error });
+      this.logger.error('Basepack Storage: Provider health check failed', { provider: this.name, error: toSafeErrorDetails(error) });
       const storageError = StorageError.from(error, this.name);
 
       return {

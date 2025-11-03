@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { MessagingError } from '../errors';
 import type { Logger } from '../../logger';
+import { toSafeErrorDetails } from '../../logger';
 
 /**
  * MessageBird messaging provider.
@@ -152,7 +153,7 @@ export class MessageBirdProvider implements IMessagingProvider {
 
       this.logger.error('Basepack Messaging: Provider send failed', {
         provider: this.name,
-        error,
+        error: toSafeErrorDetails(error),
       });
 
       const messagingError = MessagingError.from(error, this.name, this.isRetryableError(error));
@@ -256,7 +257,7 @@ export class MessageBirdProvider implements IMessagingProvider {
 
       this.logger.error('Basepack Messaging: Provider send failed', {
         provider: this.name,
-        error,
+        error: toSafeErrorDetails(error),
       });
 
       const messagingError = MessagingError.from(error, this.name, this.isRetryableError(error));
@@ -417,7 +418,7 @@ export class MessageBirdProvider implements IMessagingProvider {
       this.logger.error('Basepack Messaging: Failed to get message status', {
         provider: this.name,
         messageId,
-        error,
+        error: toSafeErrorDetails(error),
       });
 
       return null;
