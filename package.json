@@ -1,6 +1,6 @@
 {
   "name": "basepack",
-  "version": "0.1.6",
+  "version": "33",
   "description": "Ready-to-use service utilities for backend applications with multi-provider support and automatic failover.",
   "keywords": [
     "backend",
