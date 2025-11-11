@@ -51,25 +51,31 @@ export class FCMProvider implements INotificationProvider {
   private initializeFirebase(): void {
     try {
       // Dynamic import to make firebase-admin optional
-      const { initializeApp, cert } = require('firebase-admin/app');
+      const { initializeApp, cert, getApps, getApp } = require('firebase-admin/app');
       const { getMessaging } = require('firebase-admin/messaging');
 
-      // Use service account from file
-      if (this.config.serviceAccountPath) {
-        const serviceAccount = require(this.config.serviceAccountPath);
-        this.app = initializeApp({
-          credential: cert(serviceAccount)
-        });
-      }
-      // Use service account object
-      else if (Object.keys(this.config.serviceAccount).length > 0) {
-        this.app = initializeApp({
-          credential: cert(this.config.serviceAccount)
-        });
-      }
-      // Use application default credentials
-      else {
-        this.app = initializeApp();
+      // Check if app already exists
+      const existingApps = getApps();
+      if (existingApps.length > 0) {
+        this.app = getApp();
+      } else {
+        // Use service account from file
+        if (this.config.serviceAccountPath) {
+          const serviceAccount = require(this.config.serviceAccountPath);
+          this.app = initializeApp({
+            credential: cert(serviceAccount)
+          });
+        }
+        // Use service account object
+        else if (Object.keys(this.config.serviceAccount).length > 0) {
+          this.app = initializeApp({
+            credential: cert(this.config.serviceAccount)
+          });
+        }
+        // Use application default credentials
+        else {
+          this.app = initializeApp();
+        }
       }
 
       this.admin = getMessaging(this.app);
