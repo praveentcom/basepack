@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailBaseOptions, EmailSendResult, EmailHealthInfo, SendGridConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
+import { normalizeBufferEncoding } from '../validation';
 import { toSafeErrorDetails } from '../../logger';
 import type { Logger } from '../../logger';
 
@@ -143,7 +144,7 @@ export class SendGridProvider implements IEmailProvider {
       body.attachments = message.attachments.map(attachment => {
         const content = Buffer.isBuffer(attachment.content) 
           ? attachment.content 
-          : Buffer.from(attachment.content, attachment.encoding as BufferEncoding || 'utf-8');
+          : Buffer.from(attachment.content, normalizeBufferEncoding(attachment.encoding));
         
         return {
           content: content.toString('base64'),

@@ -351,7 +351,7 @@ export class EmailService {
     );
 
     return {
-      ok: true,
+      ok: primaryHealth.ok,
       provider: this.primaryProvider.name,
       primary: primaryHealth.ok ? { ok: true, message: 'Healthy' } : primaryHealth,
       backups: backupHealths

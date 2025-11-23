@@ -146,16 +146,8 @@ export class NotificationService {
         timestamp: new Date().toISOString()
       });
 
-      // If all successful, return results (but emit backup-try log if backups exist to satisfy unit expectations)
+      // If all successful, return results
       if (successCount === results.length) {
-        if (this.backupProviders.length > 0) {
-          const backupProvider = this.backupProviders[0];
-          this.log('info', 'Basepack Notification: Trying backup provider', {
-            provider: backupProvider.name,
-            failedCount: messages.length,
-            timestamp: new Date().toISOString()
-          });
-        }
         return results;
       }
 
@@ -235,15 +227,17 @@ export class NotificationService {
 
         // Update results with successful backups
         let backupIndex = 0;
+        const remainingFailedIndices: number[] = [];
         for (let j = 0; j < failedIndices.length; j++) {
           const originalIndex = failedIndices[j];
           if (backupResults[backupIndex]?.success) {
             allResults[originalIndex] = backupResults[backupIndex];
-            failedIndices.splice(j, 1);
-            j--;
+          } else {
+            remainingFailedIndices.push(originalIndex);
           }
           backupIndex++;
         }
+        failedIndices = remainingFailedIndices;
 
         // If all failed messages are now successful, break
         if (failedIndices.length === 0) {

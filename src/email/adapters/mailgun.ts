@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, MailgunConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
+import { normalizeBufferEncoding } from '../validation';
 import { toSafeErrorDetails } from '../../logger';
 import type { Logger } from '../../logger';
 
@@ -143,7 +144,7 @@ export class MailgunProvider implements IEmailProvider {
       for (const attachment of message.attachments) {
         const content = Buffer.isBuffer(attachment.content) 
           ? attachment.content 
-          : Buffer.from(attachment.content, attachment.encoding as BufferEncoding || 'utf-8');
+          : Buffer.from(attachment.content, normalizeBufferEncoding(attachment.encoding));
         
         const blob = new Blob([new Uint8Array(content)], { type: attachment.contentType || 'application/octet-stream' });
         formData.append('attachment', blob, attachment.filename);

@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, PostmarkConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
+import { normalizeBufferEncoding } from '../validation';
 import { toSafeErrorDetails } from '../../logger';
 import type { Logger } from '../../logger';
 
@@ -129,9 +130,9 @@ export class PostmarkProvider implements IEmailProvider {
     // Handle attachments
     if (message.attachments && message.attachments.length > 0) {
       body.Attachments = message.attachments.map(attachment => {
-        const content = Buffer.isBuffer(attachment.content) 
-          ? attachment.content 
-          : Buffer.from(attachment.content, attachment.encoding as BufferEncoding || 'utf-8');
+        const content = Buffer.isBuffer(attachment.content)
+          ? attachment.content
+          : Buffer.from(attachment.content, normalizeBufferEncoding(attachment.encoding));
         
         return {
           Name: attachment.filename,

@@ -46,13 +46,13 @@ export class RabbitMQProvider implements IQueueProvider {
     this.config = {
       url: process.env.RABBITMQ_URL,
       hostname: process.env.RABBITMQ_HOST || 'localhost',
-      port: parseInt(process.env.RABBITMQ_PORT || '5672'),
+      port: parseInt(process.env.RABBITMQ_PORT || '5672', 10),
       username: process.env.RABBITMQ_USER || 'guest',
       password: process.env.RABBITMQ_PASS || 'guest',
       vhost: process.env.RABBITMQ_VHOST || '/',
       ssl: process.env.RABBITMQ_SSL === 'true',
-      timeout: parseInt(process.env.RABBITMQ_TIMEOUT || '10000'),
-      heartbeat: parseInt(process.env.RABBITMQ_HEARTBEAT || '60'),
+      timeout: parseInt(process.env.RABBITMQ_TIMEOUT || '10000', 10),
+      heartbeat: parseInt(process.env.RABBITMQ_HEARTBEAT || '60', 10),
       ...config
     };
   }
@@ -336,29 +336,8 @@ export class RabbitMQProvider implements IQueueProvider {
       const maxMessages = Math.min(config.maxResults || 1, 10);
 
       for (let i = 0; i < maxMessages; i++) {
-        const message = await new Promise<any>((resolve, reject) => {
-          const timeout = config.waitTimeSeconds ? config.waitTimeSeconds * 1000 : 10000;
-          let resolved = false;
-
-          const timer = setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              resolve(null); // No message available
-            }
-          }, timeout);
-
-          channel.get(config.queueNameOrUrl, options, (err: Error, msg: any) => {
-            if (resolved) return;
-            resolved = true;
-            clearTimeout(timer);
-
-            if (err) {
-              reject(err);
-            } else {
-              resolve(msg);
-            }
-          });
-        });
+        // channel.get() returns a Promise, not a callback-based function
+        const message = await channel.get(config.queueNameOrUrl, options);
 
         if (message) {
           let body: any;
@@ -433,7 +412,7 @@ export class RabbitMQProvider implements IQueueProvider {
 
       // For RabbitMQ, we need the delivery tag from the message
       // The taskId should contain the deliveryTag
-      const deliveryTag = parseInt(config.taskId);
+      const deliveryTag = parseInt(config.taskId, 10);
 
       if (isNaN(deliveryTag)) {
         throw new QueueValidationError(
@@ -492,7 +471,8 @@ export class RabbitMQProvider implements IQueueProvider {
         this.connection = null;
       }
     } catch (error) {
-      // Ignore errors during close
+      // Log errors during close but don't throw
+      console.error('Error closing RabbitMQ connection:', error instanceof Error ? error.message : error);
     }
   }
 

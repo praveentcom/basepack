@@ -529,7 +529,7 @@ describe('NotificationService', () => {
   });
 
   describe('Logging', () => {
-    it('should log backup provider attempts when primary succeeds but backups exist', async () => {
+    it('should not log backup provider attempts when primary succeeds', async () => {
       const service = new NotificationService({
         primary: { provider: NotificationProvider.FCM },
         backups: [
@@ -546,12 +546,8 @@ describe('NotificationService', () => {
 
       await service.send({ message });
 
-      // Should log backup attempt even when primary succeeds
-      expect(mockLogger.info).toHaveBeenCalledWith('Basepack Notification: Trying backup provider', {
-        provider: NotificationProvider.APNS,
-        failedCount: 1,
-        timestamp: expect.any(String)
-      });
+      // Should NOT log backup attempt when primary succeeds
+      expect(mockLogger.info).not.toHaveBeenCalledWith('Basepack Notification: Trying backup provider', expect.any(Object));
     });
   });
 });

@@ -61,10 +61,17 @@ export class FCMProvider implements INotificationProvider {
       } else {
         // Use service account from file
         if (this.config.serviceAccountPath) {
-          const serviceAccount = require(this.config.serviceAccountPath);
-          this.app = initializeApp({
-            credential: cert(serviceAccount)
-          });
+          try {
+            const serviceAccount = require(this.config.serviceAccountPath);
+            this.app = initializeApp({
+              credential: cert(serviceAccount)
+            });
+          } catch (error) {
+            throw new NotificationConfigError(
+              `Failed to load FCM service account from path: ${this.config.serviceAccountPath}. ${error instanceof Error ? error.message : 'Unknown error'}`,
+              this.name
+            );
+          }
         }
         // Use service account object
         else if (Object.keys(this.config.serviceAccount).length > 0) {

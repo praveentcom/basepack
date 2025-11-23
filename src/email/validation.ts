@@ -9,6 +9,23 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_WITH_NAME_REGEX = /^.+<[^\s@]+@[^\s@]+\.[^\s@]+>$/;
 
 /**
+ * Valid Node.js Buffer encodings
+ */
+const VALID_BUFFER_ENCODINGS = new Set<BufferEncoding>([
+  'ascii',
+  'utf8',
+  'utf-8',
+  'utf16le',
+  'ucs2',
+  'ucs-2',
+  'base64',
+  'base64url',
+  'latin1',
+  'binary',
+  'hex'
+]);
+
+/**
  * Validates an email address format.
  * 
  * Supports both simple and display name formats:
@@ -181,7 +198,7 @@ export function validateEmailMessage(message: EmailMessage): void {
       const maxSize = 10 * 1024 * 1024; // 10MB
       const contentSize = Buffer.isBuffer(attachment.content)
         ? attachment.content.length
-        : Buffer.byteLength(attachment.content, attachment.encoding as BufferEncoding || 'utf-8');
+        : Buffer.byteLength(attachment.content, normalizeBufferEncoding(attachment.encoding));
 
       if (contentSize > maxSize) {
         throw new EmailValidationError(
@@ -191,5 +208,32 @@ export function validateEmailMessage(message: EmailMessage): void {
       }
     }
   }
+}
+
+/**
+ * Safely normalizes a buffer encoding to a valid BufferEncoding type.
+ * Returns 'utf-8' as the default if the encoding is invalid or not provided.
+ *
+ * @param encoding - The encoding to normalize
+ * @returns A valid BufferEncoding
+ *
+ * @example
+ * ```typescript
+ * normalizeBufferEncoding('utf8'); // 'utf8'
+ * normalizeBufferEncoding('invalid'); // 'utf-8'
+ * normalizeBufferEncoding(undefined); // 'utf-8'
+ * ```
+ */
+export function normalizeBufferEncoding(encoding?: string): BufferEncoding {
+  if (!encoding) {
+    return 'utf-8';
+  }
+
+  const normalized = encoding.toLowerCase();
+  if (VALID_BUFFER_ENCODINGS.has(normalized as BufferEncoding)) {
+    return normalized as BufferEncoding;
+  }
+
+  return 'utf-8';
 }
 

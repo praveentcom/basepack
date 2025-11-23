@@ -1,5 +1,6 @@
 import { IEmailProvider, EmailMessage, EmailSendResult, EmailHealthInfo, SESConfig, EmailSendConfig, EmailProvider } from '../types';
 import { EmailError } from '../errors';
+import { normalizeBufferEncoding } from '../validation';
 import { toSafeErrorDetails } from '../../logger';
 import type { Logger } from '../../logger';
 
@@ -275,7 +276,7 @@ export class SESProvider implements IEmailProvider {
         // Convert content to base64
         const content = Buffer.isBuffer(attachment.content) 
           ? attachment.content 
-          : Buffer.from(attachment.content, attachment.encoding as BufferEncoding || 'utf-8');
+          : Buffer.from(attachment.content, normalizeBufferEncoding(attachment.encoding));
         
         const base64Content = content.toString('base64');
         // Split base64 into 76-character lines as per RFC 2045
