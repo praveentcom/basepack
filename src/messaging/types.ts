@@ -287,7 +287,7 @@ export enum MessagingProvider {
   MSG91 = "msg91",
   VONAGE = "vonage",
   PLIVO = "plivo",
-  MESSENGERBIRD = "messagebird",
+  MESSAGEBIRD = "messagebird",
 }
 
 /**
@@ -427,7 +427,7 @@ export type MessagingSingleProviderConfig =
   | { provider: MessagingProvider.MSG91; config?: MSG91Config }
   | { provider: MessagingProvider.VONAGE; config?: VonageConfig }
   | { provider: MessagingProvider.PLIVO; config?: PlivoConfig }
-  | { provider: MessagingProvider.MESSENGERBIRD; config?: MessageBirdConfig };
+  | { provider: MessagingProvider.MESSAGEBIRD; config?: MessageBirdConfig };
 
 /**
  * MessagingService configuration with optional backup providers for automatic failover.

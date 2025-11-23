@@ -275,7 +275,8 @@ export class QueueService {
  * Creates a queue provider instance based on configuration.
  */
 export function createProvider(config: QueueServiceConfig, logger?: Logger): IQueueProvider {
-  switch (config.provider) {
+  const provider = config.provider;
+  switch (provider) {
     case QueueProvider.SQS:
       try {
         const { SQSProvider } = require('./adapters/sqs');
@@ -299,5 +300,8 @@ export function createProvider(config: QueueServiceConfig, logger?: Logger): IQu
       } catch (error) {
         throw new Error('Install package: npm install @google-cloud/tasks');
       }
+
+    default:
+      throw new Error(`Unsupported queue provider: ${provider}`);
   }
 }

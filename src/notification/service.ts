@@ -78,22 +78,28 @@ export class NotificationService {
    * Create a provider instance from configuration
    */
   private createProvider(config: NotificationSingleProviderConfig): INotificationProvider {
+    const provider = config.provider;
     try {
-      switch (config.provider) {
+      switch (provider) {
         case NotificationProvider.FCM:
           return new FCMProvider(config.config);
         case NotificationProvider.APNS:
           return new APNSProvider(config.config as any);
         case NotificationProvider.WEB_PUSH:
           return new WebPushProvider(config.config);
+        default:
+          throw new NotificationError(
+            `Unsupported notification provider: ${provider}`,
+            provider
+          );
       }
     } catch (error) {
       if (error instanceof NotificationError) {
         throw error;
       }
       throw new NotificationError(
-        `Failed to create provider ${config.provider}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        config.provider
+        `Failed to create provider ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        provider
       );
     }
   }

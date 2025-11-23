@@ -172,7 +172,8 @@ export class MessagingService {
   private createProvider(
     config: MessagingSingleProviderConfig,
   ): IMessagingProvider {
-    switch (config.provider) {
+    const provider = config.provider;
+    switch (provider) {
       case MessagingProvider.TWILIO:
         return new TwilioProvider(config.config as TwilioConfig | undefined, this.logger);
       case MessagingProvider.SNS:
@@ -185,8 +186,10 @@ export class MessagingService {
         return new VonageProvider(config.config as VonageConfig | undefined, this.logger);
       case MessagingProvider.PLIVO:
         return new PlivoProvider(config.config as PlivoConfig | undefined, this.logger);
-      case MessagingProvider.MESSENGERBIRD:
+      case MessagingProvider.MESSAGEBIRD:
         return new MessageBirdProvider(config.config as MessageBirdConfig | undefined, this.logger);
+      default:
+        throw new Error(`Unsupported messaging provider: ${provider}`);
     }
   }
 
