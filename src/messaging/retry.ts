@@ -15,7 +15,7 @@ export interface RetryOptions {
   retries?: number;
   /** Minimum timeout between retries in milliseconds (default: 1000) */
   minTimeout?: number;
-  /** Maximum timeout between retries in milliseconds (default: 10000) */
+  /** Maximum timeout between retries in milliseconds (default: 30000) */
   maxTimeout?: number;
   /** Exponential backoff factor (default: 2) */
   factor?: number;

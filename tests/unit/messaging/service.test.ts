@@ -572,7 +572,7 @@ describe('MessagingService', () => {
 
     it('should create MessageBird provider', () => {
       const service = new MessagingService({
-        provider: MessagingProvider.MESSENGERBIRD,
+        provider: MessagingProvider.MESSAGEBIRD,
         config: { accessKey: 'test-key' }
       });
 

@@ -207,11 +207,12 @@ export class WebPushProvider implements INotificationProvider {
   /**
    * Convert priority to Web Push urgency
    */
-  private getWebPushUrgency(priority?: number): 'high' | 'normal' | 'low' {
+  private getWebPushUrgency(priority?: number): 'high' | 'normal' | 'low' | 'very-low' {
     if (priority === undefined) return 'normal';
     if (priority <= 2) return 'high';
-    if (priority <= 7) return 'normal';
-    return 'low';
+    if (priority <= 5) return 'normal';
+    if (priority <= 8) return 'low';
+    return 'very-low';
   }
 
   /**

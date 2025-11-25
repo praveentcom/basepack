@@ -155,7 +155,8 @@ export class EmailService {
   }
 
   private createProvider(config: EmailSingleProviderConfig): IEmailProvider {
-    switch (config.provider) {
+    const provider = config.provider;
+    switch (provider) {
       case EmailProvider.SES:
         return new SESProvider(config.config as SESConfig | undefined, this.logger);
       case EmailProvider.MAILGUN:
@@ -168,6 +169,8 @@ export class EmailService {
         return new PostmarkProvider(config.config as PostmarkConfig | undefined, this.logger);
       case EmailProvider.SMTP:
         return new SMTPProvider(config.config as SMTPConfig | undefined, this.logger);
+      default:
+        throw new Error(`Unsupported email provider: ${provider}`);
     }
   }
 

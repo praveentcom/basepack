@@ -13,7 +13,7 @@ describe('Messaging Types', () => {
       expect(MessagingProvider.MSG91).toBe('msg91');
       expect(MessagingProvider.VONAGE).toBe('vonage');
       expect(MessagingProvider.PLIVO).toBe('plivo');
-      expect(MessagingProvider.MESSENGERBIRD).toBe('messagebird');
+      expect(MessagingProvider.MESSAGEBIRD).toBe('messagebird');
     });
 
     it('should have seven providers', () => {

@@ -48,7 +48,7 @@ import { toSafeErrorDetails } from '../../logger';
  * @see https://developers.messagebird.com/api/sms-messaging
  */
 export class MessageBirdProvider implements IMessagingProvider {
-  readonly name = MessagingProvider.MESSENGERBIRD;
+  readonly name = MessagingProvider.MESSAGEBIRD;
   private accessKey: string;
   private endpoint: string;
   private logger: Logger;
@@ -64,12 +64,12 @@ export class MessageBirdProvider implements IMessagingProvider {
     this.logger = logger;
     this.logger.debug('Basepack Messaging: Initializing provider', { provider: this.name });
 
-    this.accessKey = config.accessKey ?? process.env.MESSENGERBIRD_ACCESS_KEY ?? '';
+    this.accessKey = config.accessKey ?? process.env.MESSAGEBIRD_ACCESS_KEY ?? '';
     this.endpoint = config.endpoint ?? 'https://api.messagebird.com';
 
     if (!this.accessKey) {
       throw new Error(
-        'MessageBird access key is required. Provide accessKey in config or set MESSENGERBIRD_ACCESS_KEY environment variable.'
+        'MessageBird access key is required. Provide accessKey in config or set MESSAGEBIRD_ACCESS_KEY environment variable.'
       );
     }
   }
